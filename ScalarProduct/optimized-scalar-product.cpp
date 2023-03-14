@@ -1,6 +1,7 @@
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 using namespace lbcrypto;
 /*
@@ -32,8 +33,16 @@ int main(int argc, char *argv[]) {
 	vectors.push_back(v);
     }
     
-    nr_elements = vectors[0].size();
-    
+    double closest_exponent = ceil(log2(vectors[0].size()));
+    nr_elements = (int)pow(2, closest_exponent);
+    int64_t vector_size = vectors[0].size();
+    std::cout << "Size: " << vector_size << "; Closest: " << closest_exponent << "; Total Element: " << nr_elements << std::endl;
+    if(nr_elements != vector_size){
+      std::vector<int64_t> zeros(nr_elements - vector_size);
+      vectors[0].insert(vectors[0].begin(), zeros.begin(), zeros.end());
+      vectors[1].insert(vectors[1].begin(), zeros.begin(), zeros.end()); 
+    }
+    std::cout << "Vectors: " << vectors[0] << std::endl << vectors[1] << std::endl;
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0};
@@ -78,6 +87,7 @@ int main(int argc, char *argv[]) {
     
     for(int i = 0; i < 2; i++){
                 Plaintext plaintext = cryptoContext->MakePackedPlaintext(vectors[i]);
+		std::cout << "Plaintext: " << plaintext << std::endl;
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
 
@@ -90,17 +100,28 @@ int main(int argc, char *argv[]) {
 	    
     // Homomorphic Operations 
     auto ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
-
     auto ciphertextRot = ciphertextResult;
-    int64_t vector_size = vectors[0].size();
-    
-    int number_rotation = (int)log2(vector_size);
-    for(int i = 0; i < number_rotation; i++){
+    Plaintext plaintextDec;
+ 
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDec);
+    plaintextDec->SetLength(vector_size);
+    std::cout << "Plaintext: " << plaintextDec << std::endl;
+       
+    for(int i = 0; i < closest_exponent; i++){
+        std::cout << "Rotation: " << pow(2, i) << std::endl;
+     
         ciphertextRot = cryptoContext->EvalRotate(ciphertextRot, pow(2, i));
-
-        ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
+          
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextRot, &plaintextDec);
+    plaintextDec->SetLength(vector_size);
+    std::cout << "Rot Plaintext: " << plaintextDec << std::endl;
+      
+        ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);
+cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDec);
+    plaintextDec->SetLength(vector_size);
+    std::cout << "Add Plaintext: " << plaintextDec << std::endl;
+     
     }
-
     TOC(t);
     processingTimes[2] = TOC(t);
  
@@ -113,7 +134,7 @@ int main(int argc, char *argv[]) {
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDecAdd);
     plaintextDecAdd->SetLength(vector_size);
-
+    std::cout << "Plaintext: " << plaintextDecAdd << std::endl;
     TOC(t);
     processingTimes[3] = TOC(t);
  
