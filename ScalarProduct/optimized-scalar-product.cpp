@@ -36,15 +36,13 @@ int main(int argc, char *argv[]) {
     double closest_exponent = ceil(log2(vectors[0].size()));
     nr_elements = (int)pow(2, closest_exponent);
     int64_t vector_size = vectors[0].size();
-    std::cout << "Size: " << vector_size << "; Closest: " << closest_exponent << "; Total Element: " << nr_elements << std::endl;
+
     if(nr_elements != vector_size){
       std::vector<int64_t> zeros(nr_elements - vector_size);
       vectors[0].insert(vectors[0].end(), zeros.begin(), zeros.end());
       vectors[1].insert(vectors[1].end(), zeros.begin(), zeros.end()); 
       vector_size = nr_elements;
     }
-
-    std::cout << "Vectors: " << vectors[0] << std::endl << vectors[1] << std::endl;
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0};
@@ -75,7 +73,12 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
     // Generate the rotation evaluation keys
-    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {1, 2, -1, -2});    
+    std::vector<int32_t> rotation_indexes;
+    for(int i = 0; i < closest_exponent; i++){
+       rotation_indexes.push_back(pow(2,i)); 
+    }
+
+    cryptoContext->EvalRotateKeyGen(keyPair.secretKey,rotation_indexes);    
     
     TOC(t);
     processingTimes[0] = TOC(t);
@@ -88,9 +91,8 @@ int main(int argc, char *argv[]) {
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
     
     for(int i = 0; i < 2; i++){
-                Plaintext plaintext = cryptoContext->MakePackedPlaintext(vectors[i]);
-		plaintext->SetLength(vector_size);
-		std::cout << "Plaintext: " << plaintext << " with size " << plaintext->GetLength() << "and values " << plaintext->GetPackedValue() << std::endl;
+        Plaintext plaintext = cryptoContext->MakePackedPlaintext(vectors[i]);
+	plaintext->SetLength(vector_size);
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
 
@@ -102,29 +104,14 @@ int main(int argc, char *argv[]) {
     TIC(t);
 	    
     // Homomorphic Operations 
-    auto ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
-    auto ciphertextRot = ciphertextResult;
+    Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
+    Ciphertext<DCRTPoly> ciphertextRot;
     Plaintext plaintextDec;
  
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDec);
-    plaintextDec->SetLength(vector_size);
-    std::cout << "Plaintext: " << plaintextDec << std::endl;
-       
     for(int i = 0; i < closest_exponent; i++){
-        	std::cout << "Rotation: " << pow(2, i) << std::endl;
-     
         ciphertextRot = cryptoContext->EvalRotate(ciphertextResult, pow(2, i));
-          
-   		 cryptoContext->Decrypt(keyPair.secretKey, ciphertextRot, &plaintextDec);
-   		 plaintextDec->SetLength(vector_size);
-   		 std::cout << "Rot Plaintext: " << plaintextDec << " with size " << plaintextDec->GetLength() << "and values " << plaintextDec->GetPackedValue() << std::endl;
-      
-        ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);
-
-		cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDec);
-    		plaintextDec->SetLength(vector_size);
-    		std::cout << "Add Plaintext: " << plaintextDec << " with size " << plaintextDec->GetLength() << "and values " << plaintextDec->GetPackedValue() << std::endl;
      
+        ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);
     }
     TOC(t);
     processingTimes[2] = TOC(t);
@@ -135,10 +122,10 @@ int main(int argc, char *argv[]) {
 
     // Decryption
     Plaintext plaintextDecAdd;
- 
+  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDecAdd);
     plaintextDecAdd->SetLength(vector_size);
-    std::cout << "Plaintext: " << plaintextDecAdd << std::endl;
+    
     TOC(t);
     processingTimes[3] = TOC(t);
  
