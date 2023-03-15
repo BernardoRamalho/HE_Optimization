@@ -39,9 +39,11 @@ int main(int argc, char *argv[]) {
     std::cout << "Size: " << vector_size << "; Closest: " << closest_exponent << "; Total Element: " << nr_elements << std::endl;
     if(nr_elements != vector_size){
       std::vector<int64_t> zeros(nr_elements - vector_size);
-      vectors[0].insert(vectors[0].begin(), zeros.begin(), zeros.end());
-      vectors[1].insert(vectors[1].begin(), zeros.begin(), zeros.end()); 
+      vectors[0].insert(vectors[0].end(), zeros.begin(), zeros.end());
+      vectors[1].insert(vectors[1].end(), zeros.begin(), zeros.end()); 
+      vector_size = nr_elements;
     }
+
     std::cout << "Vectors: " << vectors[0] << std::endl << vectors[1] << std::endl;
 
     TimeVar t;
@@ -87,7 +89,8 @@ int main(int argc, char *argv[]) {
     
     for(int i = 0; i < 2; i++){
                 Plaintext plaintext = cryptoContext->MakePackedPlaintext(vectors[i]);
-		std::cout << "Plaintext: " << plaintext << std::endl;
+		plaintext->SetLength(vector_size);
+		std::cout << "Plaintext: " << plaintext << " with size " << plaintext->GetLength() << "and values " << plaintext->GetPackedValue() << std::endl;
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
 
@@ -108,18 +111,19 @@ int main(int argc, char *argv[]) {
     std::cout << "Plaintext: " << plaintextDec << std::endl;
        
     for(int i = 0; i < closest_exponent; i++){
-        std::cout << "Rotation: " << pow(2, i) << std::endl;
+        	std::cout << "Rotation: " << pow(2, i) << std::endl;
      
-        ciphertextRot = cryptoContext->EvalRotate(ciphertextRot, pow(2, i));
+        ciphertextRot = cryptoContext->EvalRotate(ciphertextResult, pow(2, i));
           
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextRot, &plaintextDec);
-    plaintextDec->SetLength(vector_size);
-    std::cout << "Rot Plaintext: " << plaintextDec << std::endl;
+   		 cryptoContext->Decrypt(keyPair.secretKey, ciphertextRot, &plaintextDec);
+   		 plaintextDec->SetLength(vector_size);
+   		 std::cout << "Rot Plaintext: " << plaintextDec << " with size " << plaintextDec->GetLength() << "and values " << plaintextDec->GetPackedValue() << std::endl;
       
         ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);
-cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDec);
-    plaintextDec->SetLength(vector_size);
-    std::cout << "Add Plaintext: " << plaintextDec << std::endl;
+
+		cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDec);
+    		plaintextDec->SetLength(vector_size);
+    		std::cout << "Add Plaintext: " << plaintextDec << " with size " << plaintextDec->GetLength() << "and values " << plaintextDec->GetPackedValue() << std::endl;
      
     }
     TOC(t);
