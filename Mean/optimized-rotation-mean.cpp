@@ -21,12 +21,16 @@ int main(int argc, char *argv[]) {
 
     numbers_file >> number_vectors;
     numbers_file >> size_vectors;
-    
+
     int64_t total_elements = size_vectors * number_vectors;
 
     while (numbers_file >> number) {
         all_numbers.push_back(number);
     }
+   
+    double closest_exponent = ceil(log2(size_vectors));
+    size_vectors = (int)pow(2, closest_exponent);
+    number_vectors = ceil((float)all_numbers.size() / size_vectors);
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
@@ -57,7 +61,12 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
     // Generate the rotation evaluation keys
-    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {1, 2, -1, -2});    
+    std::vector<int32_t> rotation_indexes;
+    for(int i = 0; i < closest_exponent; i++){
+       rotation_indexes.push_back(pow(2,i)); 
+    }
+
+    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, rotation_indexes);    
     
     TOC(t);
     processingTimes[0] = TOC(t);
@@ -70,9 +79,9 @@ int main(int argc, char *argv[]) {
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
     
     int begin, end;
-
+    
     for(int i = 0; i < number_vectors; i++){
-        begin = i * number_vectors + i;
+        begin = i * size_vectors;
         end = size_vectors * (i + 1);
 
         Plaintext plaintext = cryptoContext->MakePackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
@@ -91,9 +100,8 @@ int main(int argc, char *argv[]) {
 
     auto ciphertextRot = ciphertextAdd;
 
-    int number_rotation = (int)log2(size_vectors);
-    for(int i = 0; i < number_rotation; i++){
-        ciphertextRot = cryptoContext->EvalRotate(ciphertextRot, pow(2, i));
+    for(int i = 0; i < closest_exponent; i++){
+        ciphertextRot = cryptoContext->EvalRotate(ciphertextAdd, pow(2, i));
 
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
