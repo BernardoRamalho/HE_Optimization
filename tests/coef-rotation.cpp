@@ -77,7 +77,7 @@ int main() {
     Plaintext plaintextDecAdd;
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
-    plaintextDecAdd->SetLength(8193);
+    plaintextDecAdd->SetLength(5);
 
     TOC(t);
     processingTimes[3] = TOC(t);

@@ -19,6 +19,7 @@ int main() {
     cryptoContext->Enable(KEYSWITCH);
     cryptoContext->Enable(LEVELEDSHE);
     cryptoContext->Enable(ADVANCEDSHE);
+
     std::cout << "n = " << cryptoContext->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder()/2 << std::endl;
     std::cout << "log2 q = " << log2(cryptoContext->GetCryptoParameters()->GetElementParams()->GetModulus().ConvertToDouble()) << std::endl;
  
@@ -30,45 +31,58 @@ int main() {
     // Generate a public/private key pair
     keyPair = cryptoContext->KeyGen();
 
+    // Generate the rotation evaluation keys
+    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {2, 4, 8192, 8191});    
+ 
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
      // Create Plaintexts
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
-    std::vector<int64_t> v, r, p, s;
-    
+    std::vector<int64_t> v;
+
     for(int i = 0; i < 8192; i++){
        v.push_back(i);
-       r.push_back(i);
-       p.push_back(i);
-       s.push_back(i);
     }
 
-    r.push_back(8193);
-    r.push_back(8194);
-    for(int i = 0; i < 8192; i++){
-       p.push_back(i);
-       s.push_back(i);
-    }
-  
-    s.push_back(8192*2);
+   // v.push_back(8193);
 
     std::cout << "Encrypting vector v of size: " << v.size() << std::endl;
-    Plaintext plaintextV = cryptoContext->MakeCoefPackedPlaintext(v);
+    Plaintext plaintextV = cryptoContext->MakePackedPlaintext(v);
     ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintextV));
+    
+    std::cout << plaintextV->GetPackedValue() << std::endl;
+    // Rotate by 2
+    auto rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 2);
 
-    std::cout << "Encrypting vector r of size: " << r.size() << std::endl;
-    Plaintext plaintextR = cryptoContext->MakeCoefPackedPlaintext(r);
-    ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintextR));
-  
-    std::cout << "Encrypting vector p of size: " << p.size() << std::endl;
-    Plaintext plaintextP = cryptoContext->MakeCoefPackedPlaintext(p);
-    ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintextP));
+    std::ofstream out2("rot2.txt");
+    std::cout.rdbuf(out2.rdbuf()); //redirect std::cout to out.txt!
 
-    std::cout << "Encrypting vector s of size: " << s.size() << std::endl;
-    Plaintext plaintextS = cryptoContext->MakeCoefPackedPlaintext(s);
-    ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintextS));
-  
-    std::cout << plaintextS->GetPackedValue() << std::endl;
+ 
+        Plaintext plaintextDecAdd;
+ 
+    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+ 
+   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+	// Rotate by 4
+    rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 4);
+
+    std::ofstream out4("rot4.txt");
+    std::cout.rdbuf(out4.rdbuf()); //redirect std::cout to out.txt!
+
+    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+ 
+   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+    // Rotate by 8192
+
+    rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 8192);
+
+    std::ofstream out8192("rot8192.txt");
+    std::cout.rdbuf(out8192.rdbuf()); //redirect std::cout to out.txt!
+
+    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+ 
+   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+
     return 0;
 }
