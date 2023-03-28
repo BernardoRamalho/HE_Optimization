@@ -32,7 +32,7 @@ int main() {
     keyPair = cryptoContext->KeyGen();
 
     // Generate the rotation evaluation keys
-    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {2, 4, 8192, 8191});    
+    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {2, 4096, 4097, 6000, 8191, 8192});    
  
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
@@ -64,15 +64,47 @@ int main() {
     cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
  
    std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
-	// Rotate by 4
-    rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 4);
+	// Rotate by 4096
+   rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 4096);
 
-    std::ofstream out4("rot4.txt");
-    std::cout.rdbuf(out4.rdbuf()); //redirect std::cout to out.txt!
+   std::ofstream out4096("rot4096.txt");
+    std::cout.rdbuf(out4096.rdbuf()); //redirect std::cout to out.txt!
 
     cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
  
    std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+
+ 	// Rotate by 4097
+   rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 4097);
+
+   std::ofstream out4097("rot4097.txt");
+    std::cout.rdbuf(out4097.rdbuf()); //redirect std::cout to out.txt!
+
+    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+ 
+   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+
+   	// Rotate by 6000
+   rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 6000);
+
+   std::ofstream out6000("rot6000.txt");
+    std::cout.rdbuf(out6000.rdbuf()); //redirect std::cout to out.txt!
+
+    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+ 
+   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+   
+    // Rotate by 8191
+
+    rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 8191);
+
+    std::ofstream out8191("rot8191.txt");
+    std::cout.rdbuf(out8191.rdbuf()); //redirect std::cout to out.txt!
+
+    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+ 
+   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+
     // Rotate by 8192
 
     rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 8192);
