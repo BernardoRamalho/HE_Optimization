@@ -61,12 +61,15 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
     // Generate the rotation evaluation keys
-    std::vector<int32_t> rotation_indexes;
+    std::vector<Ciphertext<DCRTPoly>> rotation_ciphertexts;
+    Plaintext plaintextRot;
     for(int i = 0; i < closest_exponent; i++){
-       rotation_indexes.push_back(pow(2,i)); 
+	std::vector<int64_t> rotationVector(8191, 0);
+	rotationVector[(int)pow(2, i)] = 1;
+        plaintextRot = cryptoContext->MakeCoefPackedPlaintext(rotationVector);
+        rotation_ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintextRot));
     }
 
-    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, rotation_indexes);    
     
     TOC(t);
     processingTimes[0] = TOC(t);
@@ -84,7 +87,7 @@ int main(int argc, char *argv[]) {
         begin = i * size_vectors;
         end = size_vectors * (i + 1);
 
-        Plaintext plaintext = cryptoContext->MakePackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
+        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
 
@@ -101,9 +104,9 @@ int main(int argc, char *argv[]) {
     auto ciphertextRot = ciphertextAdd;
 
     for(int i = 0; i < closest_exponent; i++){
-        ciphertextRot = cryptoContext->EvalRotate(ciphertextAdd, pow(2, i));
-
+   	ciphertextRot = cryptoContext->EvalMult(ciphertextAdd, rotation_ciphertexts[i]);
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
+ 
     }
 
     TOC(t);
@@ -127,8 +130,9 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    double mean_sum = plaintextDecAdd->GetPackedValue()[0];
-    std::cout << "Mean sum: " << mean_sum << std::endl; 
+    int numberValues = plaintextDecAdd->GetCoefPackedValue().size();
+    double mean_sum = plaintextDecAdd->GetCoefPackedValue()[numberValues-1];
+
     double mean = mean_sum / total_elements; 
 
     TOC(t);
