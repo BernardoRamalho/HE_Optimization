@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
 
     // Plaintext Operations
     double mean_sum = plaintextDecAdd->GetPackedValue()[0];
-
+    std::cout << "Mean sum: " << mean_sum << std::endl; 
     double mean = mean_sum / total_elements; 
 
     TOC(t);

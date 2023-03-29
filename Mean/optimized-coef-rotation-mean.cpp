@@ -63,7 +63,6 @@ int main(int argc, char *argv[]) {
     // Generate the rotation evaluation keys
     std::vector<Ciphertext<DCRTPoly>> rotation_ciphertexts;
     Plaintext plaintextRot;
-
     for(int i = 0; i < closest_exponent; i++){
 	std::vector<int64_t> rotationVector(8191, 0);
 	rotationVector[(int)pow(2, i)] = 1;
