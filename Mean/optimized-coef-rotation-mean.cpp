@@ -102,13 +102,26 @@ int main(int argc, char *argv[]) {
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
     Plaintext pAdd;
     auto ciphertextRot = ciphertextAdd;
+    Ciphertext<DCRTPoly> ciphertextHold;
     std::string filePath;
     for(int i = 0; i < closest_exponent; i++){
+        ciphertextHold = ciphertextAdd;
    	ciphertextRot = cryptoContext->EvalMult(ciphertextAdd, rotation_ciphertexts[i]);
-        ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
-
-	// Print operations result
+      
+	// Print Add Result
         filePath = "coefRot/coefRot" + std::to_string((int)pow(2, i)) + ".txt";   
+       std::ofstream out1(filePath);
+       std::cout.rdbuf(out1.rdbuf()); //redirect std::cout to out.txt!
+
+       cryptoContext->Decrypt(keyPair.secretKey, ciphertextRot, &pAdd);
+ 
+       std::cout << pAdd->GetCoefPackedValue() << std::endl;
+       out1.close();
+
+        ciphertextAdd = cryptoContext->EvalAdd(ciphertextHold, ciphertextRot);
+
+	// Print Add Result
+        filePath = "coefRot/coefAdd" + std::to_string((int)pow(2, i)) + ".txt";   
        std::ofstream out2(filePath);
        std::cout.rdbuf(out2.rdbuf()); //redirect std::cout to out.txt!
 
