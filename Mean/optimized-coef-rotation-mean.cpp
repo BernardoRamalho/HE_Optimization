@@ -27,10 +27,10 @@ int main(int argc, char *argv[]) {
     while (numbers_file >> number) {
         all_numbers.push_back(number);
     }
-   
-    double closest_exponent = ceil(log2(size_vectors));
-    size_vectors = (int)pow(2, closest_exponent);
-    number_vectors = ceil((float)all_numbers.size() / size_vectors);
+    double closest_exponent = ceil(log2(size_vectors)) - 1;
+    std::cout << "Closest exponent: " << closest_exponent << std::endl;
+   // size_vectors = (int)pow(2, closest_exponent);
+   // number_vectors = ceil((float)all_numbers.size() / size_vectors);
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
@@ -100,13 +100,22 @@ int main(int argc, char *argv[]) {
 	    
     // Homomorphic Operations 
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
-
+    Plaintext pAdd;
     auto ciphertextRot = ciphertextAdd;
-
+    std::string filePath;
     for(int i = 0; i < closest_exponent; i++){
    	ciphertextRot = cryptoContext->EvalMult(ciphertextAdd, rotation_ciphertexts[i]);
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
+
+	// Print operations result
+        filePath = "coefRot/coefRot" + std::to_string((int)pow(2, i)) + ".txt";   
+       std::ofstream out2(filePath);
+       std::cout.rdbuf(out2.rdbuf()); //redirect std::cout to out.txt!
+
+       cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &pAdd);
  
+       std::cout << pAdd->GetCoefPackedValue() << std::endl;
+       out2.close();
     }
 
     TOC(t);
@@ -120,7 +129,6 @@ int main(int argc, char *argv[]) {
     Plaintext plaintextDecAdd;
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
-    plaintextDecAdd->SetLength(size_vectors);
 
     TOC(t);
     processingTimes[3] = TOC(t);
@@ -130,7 +138,9 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
+   // std::cout << plaintextDecAdd->GetCoefPackedValue() << std::endl;
     int numberValues = plaintextDecAdd->GetCoefPackedValue().size();
+    std::cout << "Number of values: " << numberValues << std::endl;
     double mean_sum = plaintextDecAdd->GetCoefPackedValue()[numberValues-1];
 
     double mean = mean_sum / total_elements; 
