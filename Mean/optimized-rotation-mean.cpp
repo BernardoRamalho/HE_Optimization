@@ -28,9 +28,9 @@ int main(int argc, char *argv[]) {
         all_numbers.push_back(number);
     }
    
-    double closest_exponent = ceil(log2(size_vectors));
-    size_vectors = (int)pow(2, closest_exponent);
-    number_vectors = ceil((float)all_numbers.size() / size_vectors);
+    double number_rotations = ceil(log2(size_vectors)) - 1;
+   // size_vectors = (int)pow(2, number_rotations);
+   // number_vectors = ceil((float)all_numbers.size() / size_vectors);
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
     
     // Generate the rotation evaluation keys
     std::vector<int32_t> rotation_indexes;
-    for(int i = 0; i < closest_exponent; i++){
+    for(int i = 0; i < number_rotations; i++){
        rotation_indexes.push_back(pow(2,i)); 
     }
 
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
 
     auto ciphertextRot = ciphertextAdd;
 
-    for(int i = 0; i < closest_exponent; i++){
+    for(int i = 0; i < number_rotations; i++){
         ciphertextRot = cryptoContext->EvalRotate(ciphertextAdd, pow(2, i));
 
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
@@ -127,10 +127,9 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    double mean_sum = plaintextDecAdd->GetPackedValue()[0];
-    std::cout << "Mean sum: " << mean_sum << std::endl; 
+    double mean_sum = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[size_vectors/2];
     double mean = mean_sum / total_elements; 
-
+    
     TOC(t);
     processingTimes[4] = TOC(t);
  
