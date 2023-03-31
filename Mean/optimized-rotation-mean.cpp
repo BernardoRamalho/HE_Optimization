@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
     // Plaintext Operations
     double mean_sum = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[size_vectors/2];
     double mean = mean_sum / total_elements; 
-    
+   // std::cout << "First value: " << plaintextDecAdd->GetPackedValue()[0] << " Second value: " << plaintextDecAdd->GetPackedValue()[size_vectors/2] << std::endl;
     TOC(t);
     processingTimes[4] = TOC(t);
  
