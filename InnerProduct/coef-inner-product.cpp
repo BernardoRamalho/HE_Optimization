@@ -33,9 +33,10 @@ int main(int argc, char *argv[]) {
 	vectors.push_back(v);
     }
     
-    double closest_exponent = ceil(log2(vectors[0].size())) - 1;
-    nr_elements = (int)pow(2, closest_exponent + 1);
+    double number_rotations = ceil(log2(vectors[0].size())) - 1;
+    nr_elements = (int)pow(2, number_rotations + 1);
     int64_t vector_size = vectors[0].size();
+
     if(nr_elements != vector_size){
       std::vector<int64_t> zeros(nr_elements - vector_size);
       vectors[0].insert(vectors[0].end(), zeros.begin(), zeros.end());
@@ -54,13 +55,13 @@ int main(int argc, char *argv[]) {
     parameters.SetMultiplicativeDepth(2);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
+
     // Enable features that you wish to use
     cryptoContext->Enable(PKE);
     cryptoContext->Enable(KEYSWITCH);
     cryptoContext->Enable(LEVELEDSHE);
     cryptoContext->Enable(ADVANCEDSHE);
-    std::cout << "n = " << cryptoContext->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder()/2 << std::endl;
-    std::cout << "log2 q = " << log2(cryptoContext->GetCryptoParameters()->GetElementParams()->GetModulus().ConvertToDouble()) << std::endl;
+   
     // Sample Program: Step 2: Key Generation
 
     // Initialize Public Key Containers
@@ -73,13 +74,14 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
     // Generate the rotation evaluation keys
-    std::vector<int32_t> rotation_indexes;
-    for(int i = 0; i < closest_exponent; i++){
-       rotation_indexes.push_back(pow(2,i)); 
+    std::vector<Plaintext> rotation_plaintexts;
+    Plaintext plaintextRot;
+    for(int i = 0; i < number_rotations; i++){
+	std::vector<int64_t> rotationVector(8191, 0);
+	rotationVector[(int)pow(2, i)] = 1;
+        rotation_plaintexts.push_back(cryptoContext->MakeCoefPackedPlaintext(rotationVector));
     }
-
-    cryptoContext->EvalRotateKeyGen(keyPair.secretKey,rotation_indexes);    
-    
+   
     TOC(t);
     processingTimes[0] = TOC(t);
     
@@ -91,9 +93,10 @@ int main(int argc, char *argv[]) {
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
     
     for(int i = 0; i < 2; i++){
-        Plaintext plaintext = cryptoContext->MakePackedPlaintext(vectors[i]);
+        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(vectors[i]);
 	plaintext->SetLength(vector_size);
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
+	std::cout << plaintext->GetCoefPackedValue() << std::endl;
     }
 
     TOC(t);
@@ -106,11 +109,17 @@ int main(int argc, char *argv[]) {
     // Homomorphic Operations 
     Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
     Ciphertext<DCRTPoly> ciphertextRot;
-    Plaintext plaintextDec;
+
+    Plaintext plaintextMul;
  
-    for(int i = 0; i < closest_exponent; i++){
-        ciphertextRot = cryptoContext->EvalRotate(ciphertextResult, pow(2, i));
-     
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextMul);
+
+    std::cout << plaintextMul->GetCoefPackedValue() << std::endl;
+
+
+    for(int i = 0; i < number_rotations; i++){
+        ciphertextRot = cryptoContext->EvalMult(ciphertextResult, rotation_plaintexts[i]);
+
         ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);
     }
     TOC(t);
@@ -132,7 +141,8 @@ int main(int argc, char *argv[]) {
     std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
 
     // Plaintext Operations
-    int64_t scalar_product = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[vector_size/2];
+    std::cout << plaintextDecAdd->GetCoefPackedValue() << std::endl;
+    int64_t scalar_product = plaintextDecAdd->GetCoefPackedValue()[0] + plaintextDecAdd->GetCoefPackedValue()[vector_size/2];
 
 
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
