@@ -7,8 +7,7 @@ using namespace lbcrypto;
  * argv[1] --> number's file name
 */
 int main() {
-
-    TimeVar t;
+   TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
