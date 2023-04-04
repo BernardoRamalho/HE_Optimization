@@ -43,6 +43,8 @@ int main(int argc, char *argv[]) {
       vectors[1].insert(vectors[1].end(), zeros.begin(), zeros.end()); 
       vector_size = nr_elements;
     }
+    
+    reverse(vectors[1].begin(), vectors[1].end());
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0};
@@ -96,7 +98,6 @@ int main(int argc, char *argv[]) {
         Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(vectors[i]);
 	plaintext->SetLength(vector_size);
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
-	std::cout << plaintext->GetCoefPackedValue() << std::endl;
     }
 
     TOC(t);
@@ -110,18 +111,12 @@ int main(int argc, char *argv[]) {
     Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
     Ciphertext<DCRTPoly> ciphertextRot;
 
-    Plaintext plaintextMul;
+  //  Plaintext plaintextMul;
  
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextMul);
+   // cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextMul);
 
-    std::cout << plaintextMul->GetCoefPackedValue() << std::endl;
+    //\std::cout << plaintextMul->GetCoefPackedValue() << std::endl;
 
-
-    for(int i = 0; i < number_rotations; i++){
-        ciphertextRot = cryptoContext->EvalMult(ciphertextResult, rotation_plaintexts[i]);
-
-        ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);
-    }
     TOC(t);
     processingTimes[2] = TOC(t);
  
@@ -141,8 +136,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
 
     // Plaintext Operations
-    std::cout << plaintextDecAdd->GetCoefPackedValue() << std::endl;
-    int64_t scalar_product = plaintextDecAdd->GetCoefPackedValue()[0] + plaintextDecAdd->GetCoefPackedValue()[vector_size/2];
+    int64_t scalar_product = plaintextDecAdd->GetCoefPackedValue()[vector_size - 1];
 
 
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
