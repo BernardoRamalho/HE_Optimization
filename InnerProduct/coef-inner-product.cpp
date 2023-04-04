@@ -1,6 +1,7 @@
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 using namespace lbcrypto;
 /*
@@ -16,7 +17,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    int64_t number;
+    int64_t number, nr_elements;
 
     std::vector<std::vector<int64_t>> vectors;
     
@@ -24,7 +25,7 @@ int main(int argc, char *argv[]) {
 
     while(std::getline(numbers_file, vector_line)){
 	std::istringstream line(vector_line);
-
+       
 	std::vector<int64_t> v;
 	while (line >> number) {
         	v.push_back(number);
@@ -32,6 +33,18 @@ int main(int argc, char *argv[]) {
 	vectors.push_back(v);
     }
     
+    double number_rotations = ceil(log2(vectors[0].size())) - 1;
+    nr_elements = (int)pow(2, number_rotations + 1);
+    int64_t vector_size = vectors[0].size();
+
+    if(nr_elements != vector_size){
+      std::vector<int64_t> zeros(nr_elements - vector_size);
+      vectors[0].insert(vectors[0].end(), zeros.begin(), zeros.end());
+      vectors[1].insert(vectors[1].end(), zeros.begin(), zeros.end()); 
+      vector_size = nr_elements;
+    }
+    
+    reverse(vectors[1].begin(), vectors[1].end());
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0};
@@ -44,12 +57,13 @@ int main(int argc, char *argv[]) {
     parameters.SetMultiplicativeDepth(2);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
+
     // Enable features that you wish to use
     cryptoContext->Enable(PKE);
     cryptoContext->Enable(KEYSWITCH);
     cryptoContext->Enable(LEVELEDSHE);
     cryptoContext->Enable(ADVANCEDSHE);
-
+   
     // Sample Program: Step 2: Key Generation
 
     // Initialize Public Key Containers
@@ -60,10 +74,7 @@ int main(int argc, char *argv[]) {
 
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
-    
-    // Generate the rotation evaluation keys
-    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {1, 2, -1, -2});    
-    
+
     TOC(t);
     processingTimes[0] = TOC(t);
     
@@ -75,7 +86,8 @@ int main(int argc, char *argv[]) {
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
     
     for(int i = 0; i < 2; i++){
-                Plaintext plaintext = cryptoContext->MakePackedPlaintext(vectors[i]);
+        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(vectors[i]);
+	plaintext->SetLength(vector_size);
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
 
@@ -87,16 +99,13 @@ int main(int argc, char *argv[]) {
     TIC(t);
 	    
     // Homomorphic Operations 
-    auto ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
+    Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
 
-    auto ciphertextRot = ciphertextResult;
-    int64_t vector_size = vectors[0].size();
-    for(int i = 0; i <= vector_size; i++){
-        ciphertextRot = cryptoContext->EvalRotate(ciphertextRot, 1);
+  //  Plaintext plaintextMul;
+ 
+   // cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextMul);
 
-        ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);
-    }
-
+    //\std::cout << plaintextMul->GetCoefPackedValue() << std::endl;
 
     TOC(t);
     processingTimes[2] = TOC(t);
@@ -107,17 +116,18 @@ int main(int argc, char *argv[]) {
 
     // Decryption
     Plaintext plaintextDecAdd;
- 
+  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDecAdd);
     plaintextDecAdd->SetLength(vector_size);
-
+    
     TOC(t);
     processingTimes[3] = TOC(t);
  
     std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
 
     // Plaintext Operations
-    int64_t scalar_product = plaintextDecAdd->GetPackedValue()[0];
+    int64_t scalar_product = plaintextDecAdd->GetCoefPackedValue()[vector_size - 1];
+
 
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 

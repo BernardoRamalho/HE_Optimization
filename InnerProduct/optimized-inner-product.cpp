@@ -33,10 +33,9 @@ int main(int argc, char *argv[]) {
 	vectors.push_back(v);
     }
     
-    double closest_exponent = ceil(log2(vectors[0].size()));
-    nr_elements = (int)pow(2, closest_exponent);
+    double closest_exponent = ceil(log2(vectors[0].size())) - 1;
+    nr_elements = (int)pow(2, closest_exponent + 1);
     int64_t vector_size = vectors[0].size();
-
     if(nr_elements != vector_size){
       std::vector<int64_t> zeros(nr_elements - vector_size);
       vectors[0].insert(vectors[0].end(), zeros.begin(), zeros.end());
@@ -133,7 +132,8 @@ int main(int argc, char *argv[]) {
     std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
 
     // Plaintext Operations
-    int64_t scalar_product = plaintextDecAdd->GetPackedValue()[0];
+    int64_t scalar_product = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[vector_size/2];
+
 
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
