@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 
     auto ciphertextRot = ciphertextResult;
     int64_t vector_size = vectors[0].size();
-    for(int i = 0; i < vector_size; i++){
+    for(int i = 0; i <= vector_size; i++){
         ciphertextRot = cryptoContext->EvalRotate(ciphertextRot, 1);
 
         ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);

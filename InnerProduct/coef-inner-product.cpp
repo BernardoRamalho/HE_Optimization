@@ -74,16 +74,7 @@ int main(int argc, char *argv[]) {
 
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
-    
-    // Generate the rotation evaluation keys
-    std::vector<Plaintext> rotation_plaintexts;
-    Plaintext plaintextRot;
-    for(int i = 0; i < number_rotations; i++){
-	std::vector<int64_t> rotationVector(8191, 0);
-	rotationVector[(int)pow(2, i)] = 1;
-        rotation_plaintexts.push_back(cryptoContext->MakeCoefPackedPlaintext(rotationVector));
-    }
-   
+
     TOC(t);
     processingTimes[0] = TOC(t);
     
@@ -109,7 +100,6 @@ int main(int argc, char *argv[]) {
 	    
     // Homomorphic Operations 
     Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
-    Ciphertext<DCRTPoly> ciphertextRot;
 
   //  Plaintext plaintextMul;
  
