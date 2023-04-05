@@ -62,8 +62,6 @@ int main() {
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
     plaintextDecAdd->SetLength(5);
 
-    reduce(processingTimes.begin(), processingTimes.end());
-
     std::cout << "Initial Plaintext: " << plaintext->GetCoefPackedValue() << std::endl;
     std::cout << "Rotation Plaintext: " << plaintextRot->GetCoefPackedValue() << std::endl;
     std::cout << "Final Plaintext: " << plaintextDecAdd->GetCoefPackedValue() << std::endl;
