@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
     // Generate the rotation evaluation keys
-    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {1}) // Only rotate by 1 element;    
+    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {1}); // Only rotate by 1 element;    
     
     // Print time spent on setup
     TOC(t);
