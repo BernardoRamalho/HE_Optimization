@@ -21,8 +21,6 @@ int main() {
     numbers_file >> number_vectors;
     numbers_file >> size_vectors;
 
-    int64_t total_elements = size_vectors * number_vectors;
-
     // Body of the file contains all the numbers
     while (numbers_file >> number) {
         all_numbers.push_back(number);
