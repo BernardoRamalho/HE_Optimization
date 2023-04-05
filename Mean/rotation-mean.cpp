@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
     int begin, end;
 
     for(int i = 0; i < number_vectors; i++){
-        begin = i * number_vectors + i;
+        begin = i * size_vectors;
         end = size_vectors * (i + 1);
 
         Plaintext plaintext = cryptoContext->MakePackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 
     auto ciphertextRot = ciphertextAdd;
 
-    for(int i = 0; i < size_vectors; i++){
+    for(int i = 0; i <= size_vectors; i++){
         ciphertextRot = cryptoContext->EvalRotate(ciphertextRot, 1);
 
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);

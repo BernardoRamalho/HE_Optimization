@@ -29,8 +29,6 @@ int main(int argc, char *argv[]) {
     }
    
     double number_rotations = ceil(log2(size_vectors)) - 1;
-   // size_vectors = (int)pow(2, number_rotations);
-   // number_vectors = ceil((float)all_numbers.size() / size_vectors);
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
@@ -129,7 +127,7 @@ int main(int argc, char *argv[]) {
     // Plaintext Operations
     double mean_sum = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[size_vectors/2];
     double mean = mean_sum / total_elements; 
-   // std::cout << "First value: " << plaintextDecAdd->GetPackedValue()[0] << " Second value: " << plaintextDecAdd->GetPackedValue()[size_vectors/2] << std::endl;
+
     TOC(t);
     processingTimes[4] = TOC(t);
  
