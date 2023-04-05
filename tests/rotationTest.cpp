@@ -1,3 +1,14 @@
+/**
+ * @file rotationTest.cpp
+ * @author Bernardo Ramalho
+ * @brief test how rotation work with slot packing (they rotate in 2 batchs)
+ * @version 0.1
+ * @date 2023-04-05
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
@@ -8,113 +19,131 @@ using namespace lbcrypto;
 */
 int main() {
 
-    // Sample Program: Step 1: Set CryptoContext
-    CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(65537);
-    parameters.SetMultiplicativeDepth(2);
+  // Set CryptoContext
+  CCParams<CryptoContextBFVRNS> parameters;
+  parameters.SetPlaintextModulus(65537);
+  parameters.SetMultiplicativeDepth(2);
 
-    CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
-    // Enable features that you wish to use
-    cryptoContext->Enable(PKE);
-    cryptoContext->Enable(KEYSWITCH);
-    cryptoContext->Enable(LEVELEDSHE);
-    cryptoContext->Enable(ADVANCEDSHE);
+  CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
+  // Enable features that you wish to use
+  cryptoContext->Enable(PKE);
+  cryptoContext->Enable(KEYSWITCH);
+  cryptoContext->Enable(LEVELEDSHE);
+  cryptoContext->Enable(ADVANCEDSHE);
 
-    std::cout << "n = " << cryptoContext->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder()/2 << std::endl;
-    std::cout << "log2 q = " << log2(cryptoContext->GetCryptoParameters()->GetElementParams()->GetModulus().ConvertToDouble()) << std::endl;
- 
-    // Sample Program: Step 2: Key Generation
+  std::cout << "n = " << cryptoContext->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder()/2 << std::endl;
+  std::cout << "log2 q = " << log2(cryptoContext->GetCryptoParameters()->GetElementParams()->GetModulus().ConvertToDouble()) << std::endl;
 
-    // Initialize Public Key Containers
-    KeyPair<DCRTPoly> keyPair;
+  // Key Generation
 
-    // Generate a public/private key pair
-    keyPair = cryptoContext->KeyGen();
+  // Initialize Public Key Containers
+  KeyPair<DCRTPoly> keyPair;
 
-    // Generate the rotation evaluation keys
-    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {2, 4096, 4097, 6000, 8191, 8192});    
- 
-    // Generate the relinearization key
-    cryptoContext->EvalMultKeyGen(keyPair.secretKey);
+  // Generate a public/private key pair
+  keyPair = cryptoContext->KeyGen();
+
+  // Generate the rotation evaluation keys
+  cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {2, 4096, 4097, 6000, 8191, 8192});    
+
+  // Generate the relinearization key
+  cryptoContext->EvalMultKeyGen(keyPair.secretKey);
+  
+  // Create Ciphertext that has size 8192
+  std::vector<Ciphertext<DCRTPoly>> ciphertexts;
+  
+  // Fill a vector with values from 0 -> 8192 (not inclusive)
+  std::vector<int64_t> v;
+  for(int i = 0; i < 8192; i++){
+      v.push_back(i);
+  }
+
+  // Pack the vector into a plaintext using slot packing
+  std::cout << "Encrypting vector v of size: " << v.size() << std::endl;
+  Plaintext plaintextV = cryptoContext->MakePackedPlaintext(v);
+  
+  // Encrypt it
+  ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintextV));
+  
+  // ROTATIONS
+  Plaintext plaintextDecAdd;
+  
+  //              //
+  // ROTATE by 2  //
+  //              //
+  auto rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 2);
+
+  // Open the file
+  std::ofstream out2("slotRotResults/rot2.txt");
+  std::cout.rdbuf(out2.rdbuf()); 
+  
+  // Decrypt and save it
+  cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+  
+  //                //
+  // ROTATE by 4096 //
+  //                //
+  rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 4096);
+
+  // Open the file
+  std::ofstream out4096("slotRotResults/rot4096.txt");
+  std::cout.rdbuf(out4096.rdbuf());
+
+  // Decrypt and save it
+  cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+  
+  //                //
+  // ROTATE by 4097 //
+  //                //
+  rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 4097);
+
+  // Open the file
+  std::ofstream out4097("slotRotResults/rot4097.txt");
+  std::cout.rdbuf(out4097.rdbuf());
+
+  // Decrypt and save it
+  cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+  
+  //                //
+  // ROTATE by 6000 //
+  //                //
+  rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 6000);
+
+  // Open the file
+  std::ofstream out6000("slotRotResults/rot6000.txt");
+  std::cout.rdbuf(out6000.rdbuf());
+
+  // Decrypt and save it
+  cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
     
-     // Create Plaintexts
-    std::vector<Ciphertext<DCRTPoly>> ciphertexts;
-    std::vector<int64_t> v;
+  //                //
+  // ROTATE by 8191 //
+  //                //
+  rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 8191);
 
-    for(int i = 0; i < 8192; i++){
-       v.push_back(i);
-    }
+  // Open the file
+  std::ofstream out8191("slotRotResults/rot8191.txt");
+  std::cout.rdbuf(out8191.rdbuf());
 
-   // v.push_back(8193);
+  // Decrypt and save it
+  cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+  
+  //                //
+  // ROTATE by 8192 //
+  //                //
+  rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 8192);
 
-    std::cout << "Encrypting vector v of size: " << v.size() << std::endl;
-    Plaintext plaintextV = cryptoContext->MakePackedPlaintext(v);
-    ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintextV));
-    
-    std::cout << plaintextV->GetPackedValue() << std::endl;
-    // Rotate by 2
-    auto rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 2);
+  // Open the file
+  std::ofstream out8192("slotRotResults/rot8192.txt");
+  std::cout.rdbuf(out8192.rdbuf());
 
-    std::ofstream out2("rot2.txt");
-    std::cout.rdbuf(out2.rdbuf()); //redirect std::cout to out.txt!
+  // Decrypt and save it
+  cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
 
- 
-        Plaintext plaintextDecAdd;
- 
-    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
- 
-   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
-	// Rotate by 4096
-   rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 4096);
-
-   std::ofstream out4096("rot4096.txt");
-    std::cout.rdbuf(out4096.rdbuf()); //redirect std::cout to out.txt!
-
-    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
- 
-   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
-
- 	// Rotate by 4097
-   rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 4097);
-
-   std::ofstream out4097("rot4097.txt");
-    std::cout.rdbuf(out4097.rdbuf()); //redirect std::cout to out.txt!
-
-    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
- 
-   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
-
-   	// Rotate by 6000
-   rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 6000);
-
-   std::ofstream out6000("rot6000.txt");
-    std::cout.rdbuf(out6000.rdbuf()); //redirect std::cout to out.txt!
-
-    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
- 
-   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
-   
-    // Rotate by 8191
-
-    rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 8191);
-
-    std::ofstream out8191("rot8191.txt");
-    std::cout.rdbuf(out8191.rdbuf()); //redirect std::cout to out.txt!
-
-    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
- 
-   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
-
-    // Rotate by 8192
-
-    rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 8192);
-
-    std::ofstream out8192("rot8192.txt");
-    std::cout.rdbuf(out8192.rdbuf()); //redirect std::cout to out.txt!
-
-    cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
- 
-   std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
-
-    return 0;
+  return 0;
 }

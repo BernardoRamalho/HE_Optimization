@@ -1,3 +1,14 @@
+/**
+ * @file plaintextSize.cpp
+ * @author Bernardo Ramalho
+ * @brief test to check what is the maximum number of values in a plaintext
+ * @version 0.1
+ * @date 2023-04-05
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
@@ -8,7 +19,7 @@ using namespace lbcrypto;
 */
 int main() {
 
-    // Sample Program: Step 1: Set CryptoContext
+    //Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
     parameters.SetPlaintextModulus(65537);
     parameters.SetMultiplicativeDepth(2);
@@ -19,10 +30,12 @@ int main() {
     cryptoContext->Enable(KEYSWITCH);
     cryptoContext->Enable(LEVELEDSHE);
     cryptoContext->Enable(ADVANCEDSHE);
+
+    // Print some parameters
     std::cout << "n = " << cryptoContext->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder()/2 << std::endl;
     std::cout << "log2 q = " << log2(cryptoContext->GetCryptoParameters()->GetElementParams()->GetModulus().ConvertToDouble()) << std::endl;
  
-    // Sample Program: Step 2: Key Generation
+    //Key Generation
 
     // Initialize Public Key Containers
     KeyPair<DCRTPoly> keyPair;

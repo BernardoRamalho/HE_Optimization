@@ -1,3 +1,13 @@
+/**
+ * @file coef-rotation.cpp
+ * @author Bernardo Ramalho
+ * @brief test if, while using coefficient packing, multiplication of ciphertext with (0, 1, 0, 0) lead to a rotation by 1
+ * @version 0.1
+ * @date 2023-04-05
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
@@ -7,12 +17,7 @@ using namespace lbcrypto;
  * argv[1] --> number's file name
 */
 int main() {
-   TimeVar t;
-    std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
-
-    TIC(t);
-
-    // Sample Program: Step 1: Set CryptoContext
+    // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
     parameters.SetPlaintextModulus(65537);
     parameters.SetMultiplicativeDepth(2);
@@ -26,7 +31,7 @@ int main() {
     std::cout << "n = " << cryptoContext->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder()/2 << std::endl;
     std::cout << "log2 q = " << log2(cryptoContext->GetCryptoParameters()->GetElementParams()->GetModulus().ConvertToDouble()) << std::endl;
  
-    // Sample Program: Step 2: Key Generation
+    // Key Generation
 
     // Initialize Public Key Containers
     KeyPair<DCRTPoly> keyPair;
@@ -36,13 +41,6 @@ int main() {
 
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
-    
-    TOC(t);
-    processingTimes[0] = TOC(t);
-    
-    std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
-
-    TIC(t);
 
     // Create Plaintexts
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
@@ -53,24 +51,10 @@ int main() {
     ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     Plaintext plaintextRot = cryptoContext->MakeCoefPackedPlaintext(r);
     ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintextRot));
-    
-    TOC(t);
-    processingTimes[1] = TOC(t);
- 
-    std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
-    
-    TIC(t);
 	    
     // Homomorphic Operations 
 
     auto ciphertextAdd = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
-
-    TOC(t);
-    processingTimes[2] = TOC(t);
- 
-    std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
-    
-    TIC(t);
 
     // Decryption
     Plaintext plaintextDecAdd;
@@ -78,17 +62,6 @@ int main() {
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
     plaintextDecAdd->SetLength(5);
 
-    TOC(t);
-    processingTimes[3] = TOC(t);
- 
-    std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
-    
-    TIC(t);
-
-    // Plaintext Operations
-    double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
-
-    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
     std::cout << "Initial Plaintext: " << plaintext->GetCoefPackedValue() << std::endl;
     std::cout << "Rotation Plaintext: " << plaintextRot->GetCoefPackedValue() << std::endl;
     std::cout << "Final Plaintext: " << plaintextDecAdd->GetCoefPackedValue() << std::endl;
