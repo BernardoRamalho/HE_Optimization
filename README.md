@@ -70,4 +70,24 @@ for i = 0 to i < log2(m):
 
 Then instead of using the rotate method we just use the multiplication method. We can also shave off one rotation because of the same reason explained above.
 
-## Inner Product
+# Inner Product
+
+The inner product is calculated by multiplying two vectors together and adding the resulting values together. For all the implementations, we always start by encrypting two vectors into two ciphertexts.
+
+## Basic implementation
+
+For the basic implementation we decided to skip the naive one, since, for very large amount of data, is just unfeasible.
+
+So for this implementation we multiply both ciphertexts together and then use the rotation + addition method **m** times. At the end, the inner product value will be in the first index.
+
+## Optimized Slot Packing Implementation
+
+This implementation is done in "InnerProduct/optimized-inner-product.cpp".
+
+This is also based on the optimization done for the Mean implementation with rotation. So we reduced the amoutn of rotation from **m** to **log2(m) - 1**.
+
+## Optimized Coefficient Packing Implementation
+
+Since multiplication works as a polynomial multiplication we actually don't need to use rotation. If we reverse the second vector and multiply it with the first, due to how polynomial multiplication works, we get the value of the inner product at the last index.
+
+With this we save all the time we would use with rotation and only need to do one multiplication.
