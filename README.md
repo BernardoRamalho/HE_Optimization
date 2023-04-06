@@ -10,11 +10,11 @@ The goals of this project is to develop optimizations for basic statistical algo
 
 **m** --> total number of elements in each plaintext
 
-## Mean
+# Mean
 
 The mean is calculated by the sum of all values divided by the number of values added. We implemented 3 strategies.
 
-### Simple Mean Implementation
+## Simple Mean Implementation
 
 This implementation can be seen in both "Mean/simple-mean.cpp" and "Mean/simple-coef-mean.cpp".
 
@@ -24,7 +24,7 @@ In these implementation we just pack each value into a different plaintext (if w
 
 These is the least efficient way since encoding n plaintext for a very big n is unfeaseable in a decent time.
 
-### Rotation Mean Implementation
+## Rotation Mean Implementation
 
 This implementation can be seen in "Mean/rotation-mean.cpp". In "Mean/optimized-rotation-mean.cpp" and "Mean/optimized-coef-rotation-mean".cpp", we have an optimization on this method so I'll only talk about "Mean/rotation-mean.cpp".
 
@@ -34,14 +34,12 @@ The naive approach to do this is to use a sequence of rotations + sums in order 
 
 ```
 Do m times:
-
     **cR** --> rotate(**cA**, 1);
-    
     **cA** --> add(**cR**, **cA**);
 ```
 After repeating it m times, the summation of all the elements will be on the first element. We just have to then decrypt the result and divide by **n**.
 
-### Optimized Rotation Mean Implementation
+## Optimized Rotation Mean Implementation
 
 This implementation is based on the previous one but we reduce the amount of rotations from **m** to **log2(m)**.
 
@@ -49,9 +47,7 @@ Instead of rotation by 1, we can rotate by 2^i where i goes from 0 to log2(m), n
 
 ```
 For i = 0 to i < log2(m):
-
     **cR** --> rotate(**cA**, 2^i);
-    
     **cA** --> add(**cR**, **cA**);
 ```
 With this method we also get the summation of all the elements on the first element. Here we can actually shave of the last rotation, which is the most costly, and reduce the amount of rotations to log2(m) - 1. In the last rotation, what happens is that we sum the first element with the element that's in the middle of the plaintext. So instead of rotating, we decrypt before the last rotation and just sum those two values. 
@@ -65,16 +61,33 @@ So in order to implement this method with Coefficient packing, we have to create
 
 ```
 vector<Plaintext> rotation_plaintexts = {}
-
 for i = 0 to i < log2(m):
-
     vector<int> zeros --> zeros(m) // creates a vector of size m filled with zeros
-    
     zeros[2^i] --> 1
-    
     Plaintext p = CoefficientPacking(zeros)
-    
     rotation_plaintexts.append(p)
 ```
 
 Then instead of using the rotate method we just use the multiplication method. We can also shave off one rotation because of the same reason explained above.
+
+# Inner Product
+
+The inner product is calculated by multiplying two vectors together and adding the resulting values together. For all the implementations, we always start by encrypting two vectors into two ciphertexts.
+
+## Basic implementation
+
+For the basic implementation we decided to skip the naive one, since, for very large amount of data, is just unfeasible.
+
+So for this implementation we multiply both ciphertexts together and then use the rotation + addition method **m** times. At the end, the inner product value will be in the first index.
+
+## Optimized Slot Packing Implementation
+
+This implementation is done in "InnerProduct/optimized-inner-product.cpp".
+
+This is also based on the optimization done for the Mean implementation with rotation. So we reduced the amoutn of rotation from **m** to **log2(m) - 1**.
+
+## Optimized Coefficient Packing Implementation
+
+Since multiplication works as a polynomial multiplication we actually don't need to use rotation. If we reverse the second vector and multiply it with the first, due to how polynomial multiplication works, we get the value of the inner product at the last index.
+
+With this we save all the time we would use with rotation and only need to do one multiplication.
