@@ -4,11 +4,10 @@
 
 using namespace lbcrypto;
 
-double calculateMean(CryptoContext<DCRTPoly> cryptoContext, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t total_elements, int64_t number_rotations){
+double calculateMean(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t total_elements, int64_t number_rotations, int64_t size_vectors){
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
 
     auto ciphertextRot = ciphertextAdd;
-
     for(int i = 0; i < number_rotations; i++){
         ciphertextRot = cryptoContext->EvalRotate(ciphertextAdd, pow(2, i));
 
@@ -17,8 +16,8 @@ double calculateMean(CryptoContext<DCRTPoly> cryptoContext, std::vector<Cipherte
 
     Plaintext meanPlaintext;
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &meanPlaintext);
-
-    return (meanPlaintext->GetPackedValue()[0] + meanPlaintext->GetPackedValue()[size_vectors/2]) / total_elements;
+    double mean_sum = (meanPlaintext->GetPackedValue()[0] + meanPlaintext->GetPackedValue()[size_vectors/2]);
+    return mean_sum / total_elements;
 }
 
 /*
@@ -121,15 +120,19 @@ int main(int argc, char *argv[]) {
     // Homomorphic Operations 
 
     // Calculate the Mean
-    double negMean = calculateMean(cryptoContext, ciphertexts, total_elements, number_rotations) * -1;
-    
+    std::cout << "Total elems: " << total_elements << std::endl;
+    double negMean = calculateMean(cryptoContext, keyPair, ciphertexts, total_elements, number_rotations, size_vectors) * -1;
+    std::vector<double> meanVector(size_vectors, negMean);
+    Plaintext plaintextMean = cryptoContext->MakePackedPlaintext(meanVector);
+
     // Calculate  (xi - mean)^2
     std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
-
-    for(int i = 0; i < ciphertexts.size(); i++){
-        auto ciphertextSub = cryptoContext->EvalAdd(ciphertexts[i], negMean);
-
+    std::cout << "MEAN CACULATED: " << negMean << std::endl;
+    for(int i = 0; i < (int)ciphertexts.size(); i++){
+        auto ciphertextSub = cryptoContext->EvalAdd(ciphertexts[i], plaintextMean);
+	std::cout << "ADDED\n";
         subCiphertexts.push_back(cryptoContext->EvalMult(ciphertextSub, ciphertextSub));
+	std::cout << "MULT\n";
     }
 
     // Calculate sum((xi - mean)^2)
