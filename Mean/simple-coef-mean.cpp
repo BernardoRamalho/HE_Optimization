@@ -13,6 +13,25 @@
 #include <fstream>
 
 using namespace lbcrypto;
+void printIntoCSV(std::vector<double> processingTimes, double total_time, double mean){
+    // Open the file
+    std::string filePath;
+
+    std::ofstream meanCSV("timeCSVs/mean.csv", std::ios_base::app);
+    std::cout.rdbuf(meanCSV.rdbuf()); //redirect std::cout to out.txt!
+    
+    std::cout << "simple-coef, ";
+
+    for(int i = 0; i < processingTimes.size(); i++){
+        std::cout << processingTimes[i] << ", ";
+    }
+    std::cout << total_time << ", ";
+    
+    std::cout << mean << std::endl;
+ 
+    meanCSV.close();
+}
+
 /*
  * argv[1] --> number's file name
 */
@@ -136,5 +155,8 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Total runtime: " << total_time << "ms" << std::endl;
     std::cout << "Mean: " << mean << std::endl;
+
+    printIntoCSV(processingTimes, total_time, mean);
+    
     return 0;
 }
