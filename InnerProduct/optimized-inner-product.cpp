@@ -15,6 +15,26 @@
 #include <cmath>
 
 using namespace lbcrypto;
+
+void printIntoCSV(std::vector<double> processingTimes, double total_time, double innerProduct){
+    // Open the file
+    std::string filePath;
+
+    std::ofstream innerProductCSV("timeCSVs/innerProduct.csv", std::ios_base::app);
+    std::cout.rdbuf(innerProductCSV.rdbuf()); //redirect std::cout to out.txt!
+    
+    std::cout << "optimized, ";
+
+    for(int i = 0; i < processingTimes.size(); i++){
+        std::cout << processingTimes[i] << ", ";
+    }
+    std::cout << total_time << ", ";
+    
+    std::cout << innerProduct << std::endl;
+ 
+    innerProductCSV.close();
+}
+
 /*
  * argv[1] --> number's file name
 */
@@ -165,13 +185,15 @@ int main(int argc, char *argv[]) {
     std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
 
     // Inner Product value will be in the first element of the plaintext
-    int64_t scalar_product = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[vector_size/2];
+    int64_t inner_product = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[vector_size/2];
 
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
     std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    std::cout << "Scalar Product: " << scalar_product << std::endl;
+    std::cout << "Inner Product: " << inner_product << std::endl;
+
+    printIntoCSV(processingTimes, total_time, inner_product);
 
     return 0;
 }
