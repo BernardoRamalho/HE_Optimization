@@ -23,7 +23,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     
     std::cout << "rot, ";
 
-    for(int i = 0; i < processingTimes.size(); i++){
+    for(unsigned int i = 0; i < processingTimes.size(); i++){
         std::cout << processingTimes[i] << ", ";
     }
     std::cout << total_time << ", ";
