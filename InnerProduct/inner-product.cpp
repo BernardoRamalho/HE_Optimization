@@ -22,7 +22,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     std::ofstream innerProductCSV("timeCSVs/innerProduct.csv", std::ios_base::app);
     std::cout.rdbuf(innerProductCSV.rdbuf()); //redirect std::cout to out.txt!
     
-    std::cout << "simple, ";
+    std::cout << "\nsimple, ";
 
     for(unsigned int i = 0; i < processingTimes.size(); i++){
         std::cout << processingTimes[i] << ", ";
