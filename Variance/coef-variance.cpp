@@ -4,19 +4,21 @@
 
 using namespace lbcrypto;
 
-int64_t calculateSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations, int64_t size_vectors){
+int64_t calculateSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, std::vector<Plaintext> rotation_plaintexts, int64_t number_rotations, int64_t size_vectors){
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
-
     auto ciphertextRot = ciphertextAdd;
+    
+    // For each iteration, rotate the vector through multiplication and then add it with the non rotated vector
     for(int i = 0; i < number_rotations; i++){
-        ciphertextRot = cryptoContext->EvalRotate(ciphertextAdd, pow(2, i));
-
+   	    ciphertextRot = cryptoContext->EvalMult(ciphertextAdd, rotation_plaintexts[i]);
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
 
     Plaintext meanPlaintext;
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &meanPlaintext);
-    int64_t sum = (meanPlaintext->GetPackedValue()[0] + meanPlaintext->GetPackedValue()[size_vectors/2]);
+    int numberValues = plaintextDecAdd->GetCoefPackedValue().size();
+    
+    int64_t sum = plaintextDecAdd->GetCoefPackedValue()[0]*-1 + plaintextDecAdd->GetCoefPackedValue()[numberValues - 1];
     return sum;
 }
 
@@ -78,13 +80,19 @@ int main(int argc, char *argv[]) {
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
-    // Generate the rotation evaluation keys
-    std::vector<int32_t> rotation_indexes;
-    for(int i = 0; i < number_rotations; i++){
-       rotation_indexes.push_back(pow(2,i)); // Rotate always in 2^i
-    }
+    // Generate the rotation plaintexts
+    std::vector<Plaintext> rotation_plaintexts;
+    Plaintext plaintextRot;
 
-    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, rotation_indexes);    
+    for(int i = 0; i < number_rotations; i++){
+	    // Create vector of size 8192 filled with 0
+        std::vector<int64_t> rotationVector(8191, 0);
+
+        // Rotating by 2^i --> element @ index 2^i = 1
+	    rotationVector[(int)pow(2, i)] = 1;
+
+        rotation_plaintexts.push_back(cryptoContext->MakeCoefPackedPlaintext(rotationVector));
+    }    
     
     // Print time spent on setup
     TOC(t);
@@ -105,7 +113,7 @@ int main(int argc, char *argv[]) {
         end = size_vectors * (i + 1);
 
         // Encode Plaintext with slot packing and encrypt it into a ciphertext vector
-        Plaintext plaintext = cryptoContext->MakePackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
+        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
     
@@ -120,11 +128,16 @@ int main(int argc, char *argv[]) {
     // Homomorphic Operations 
 
     // Calculate the Mean
-    int64_t negSum = calculateSum(cryptoContext, keyPair, ciphertexts, number_rotations, size_vectors) * -1;
+    int64_t negSum = calculateSum(cryptoContext, keyPair, ciphertexts, rotation_plaintexts, number_rotations, size_vectors) * -1;
+    
+    // Create plaintext with sum in all its indexes
     std::vector<int64_t> sumVector(size_vectors, negSum);
     Plaintext plaintextSum = cryptoContext->MakePackedPlaintext(sumVector);
-std::vector<int64_t> totalVector(size_vectors, total_elements);
+    
+    // Create plaintext with total number of elements value in all its indexes
+    std::vector<int64_t> totalVector(size_vectors, total_elements);
     Plaintext plaintextTotalElems = cryptoContext->MakePackedPlaintext(totalVector);
+    
     // Calculate  (xi - mean)^2
     std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
    // std::cout << "Sum CACULATED: " << negSum << std::endl;
@@ -134,24 +147,24 @@ std::vector<int64_t> totalVector(size_vectors, total_elements);
     for(int i = 0; i < (int)ciphertexts.size(); i++){
         // Calculate n*xi
         auto ciphetextMul = cryptoContext->EvalMult(ciphertexts[i], plaintextTotalElems);
-    //    std::cout << "MULTIPLIED" << std::endl;
-  //      cryptoContext->Decrypt(keyPair.secretKey, ciphetextMul, &plaintextDec);
-//	plaintextDec->SetLength(8);
-       // std::cout << plaintextDec->GetPackedValue() << std::endl;
+        std::cout << "MULTIPLIED" << std::endl;
+        cryptoContext->Decrypt(keyPair.secretKey, ciphetextMul, &plaintextDec);
+	plaintextDec->SetLength(8);
+        std::cout << plaintextDec->GetPackedValue() << std::endl;
         
         // Calculate n*xi - sum(x)
         auto ciphertextSub = cryptoContext->EvalAdd(ciphetextMul, plaintextSum);
-	//    std::cout << "ADDED\n";
-      //  cryptoContext->Decrypt(keyPair.secretKey, ciphertextSub, &plaintextDec);
-//plaintextDec->SetLength(8);
-    //    std::cout << plaintextDec->GetPackedValue() << std::endl;
+	    std::cout << "ADDED\n";
+        cryptoContext->Decrypt(keyPair.secretKey, ciphertextSub, &plaintextDec);
+plaintextDec->SetLength(8);
+        std::cout << plaintextDec->GetPackedValue() << std::endl;
         
         // Square Everything
         subCiphertexts.push_back(cryptoContext->EvalMult(ciphertextSub, ciphertextSub));
-//	    std::cout << "SQUARE\n";
-  //      cryptoContext->Decrypt(keyPair.secretKey, subCiphertexts[i], &plaintextDec);
-//	plaintextDec->SetLength(8);
-  //      std::cout << plaintextDec->GetPackedValue() << std::endl;
+	    std::cout << "SQUARE\n";
+        cryptoContext->Decrypt(keyPair.secretKey, subCiphertexts[i], &plaintextDec);
+	plaintextDec->SetLength(8);
+        std::cout << plaintextDec->GetPackedValue() << std::endl;
     }
 
     // Calculate sum((xi - mean)^2)
@@ -160,8 +173,7 @@ std::vector<int64_t> totalVector(size_vectors, total_elements);
     auto ciphertextRot = ciphertextAdd;
 
     for(int i = 0; i < number_rotations; i++){
-        ciphertextRot = cryptoContext->EvalRotate(ciphertextAdd, pow(2, i));
-
+   	    ciphertextRot = cryptoContext->EvalMult(ciphertextAdd, rotation_plaintexts[i]);
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
     
@@ -188,7 +200,8 @@ std::vector<int64_t> totalVector(size_vectors, total_elements);
     TIC(t);
 
     // Plaintext Operations
-    double variance_sum = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[size_vectors/2];
+    int numberValues = plaintextDecAdd->GetCoefPackedValue().size();
+    double variance_sum = plaintextDecAdd->GetCoefPackedValue()[0]*-1 + plaintextDecAdd->GetCoefPackedValue()[numberValues - 1];
     double variance = variance_sum / pow(total_elements, 3); 
    
     // Print time spent on plaintext operations
