@@ -7,18 +7,20 @@ using namespace lbcrypto;
 int64_t calculateSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, std::vector<Plaintext> rotation_plaintexts, int64_t number_rotations, int64_t size_vectors){
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
     auto ciphertextRot = ciphertextAdd;
-    
+    std::cout << "Number rotations: " << number_rotations << std::endl;
     // For each iteration, rotate the vector through multiplication and then add it with the non rotated vector
-    for(int i = 0; i < number_rotations; i++){
+    for(int i = 0; i < number_rotations ; i++){
    	    ciphertextRot = cryptoContext->EvalMult(ciphertextAdd, rotation_plaintexts[i]);
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
 
-    Plaintext meanPlaintext;
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &meanPlaintext);
-    int numberValues = plaintextDecAdd->GetCoefPackedValue().size();
+    Plaintext sumPlaintext;
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &sumPlaintext);
+   // int numberValues = sumPlaintext->GetCoefPackedValue().size();
+    sumPlaintext->SetLength(70);
+    std::cout << sumPlaintext->GetCoefPackedValue() << std::endl;
     
-    int64_t sum = plaintextDecAdd->GetCoefPackedValue()[0]*-1 + plaintextDecAdd->GetCoefPackedValue()[numberValues - 1];
+    int64_t sum = sumPlaintext->GetCoefPackedValue()[pow(2, number_rotations) - 1] + sumPlaintext->GetCoefPackedValue()[size_vectors - 1];
     return sum;
 }
 
@@ -129,18 +131,18 @@ int main(int argc, char *argv[]) {
 
     // Calculate the Mean
     int64_t negSum = calculateSum(cryptoContext, keyPair, ciphertexts, rotation_plaintexts, number_rotations, size_vectors) * -1;
-    
+     
+    std::cout << "Sum CACULATED: " << negSum << std::endl;
     // Create plaintext with sum in all its indexes
     std::vector<int64_t> sumVector(size_vectors, negSum);
-    Plaintext plaintextSum = cryptoContext->MakePackedPlaintext(sumVector);
+    Plaintext plaintextSum = cryptoContext->MakeCoefPackedPlaintext(sumVector);
     
     // Create plaintext with total number of elements value in all its indexes
     std::vector<int64_t> totalVector(size_vectors, total_elements);
-    Plaintext plaintextTotalElems = cryptoContext->MakePackedPlaintext(totalVector);
+    Plaintext plaintextTotalElems = cryptoContext->MakeCoefPackedPlaintext(totalVector);
     
     // Calculate  (xi - mean)^2
     std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
-   // std::cout << "Sum CACULATED: " << negSum << std::endl;
 
     Plaintext plaintextDec;
  
@@ -150,21 +152,21 @@ int main(int argc, char *argv[]) {
         std::cout << "MULTIPLIED" << std::endl;
         cryptoContext->Decrypt(keyPair.secretKey, ciphetextMul, &plaintextDec);
 	plaintextDec->SetLength(8);
-        std::cout << plaintextDec->GetPackedValue() << std::endl;
+        std::cout << plaintextDec->GetCoefPackedValue() << std::endl;
         
         // Calculate n*xi - sum(x)
         auto ciphertextSub = cryptoContext->EvalAdd(ciphetextMul, plaintextSum);
 	    std::cout << "ADDED\n";
         cryptoContext->Decrypt(keyPair.secretKey, ciphertextSub, &plaintextDec);
 plaintextDec->SetLength(8);
-        std::cout << plaintextDec->GetPackedValue() << std::endl;
+        std::cout << plaintextDec->GetCoefPackedValue() << std::endl;
         
         // Square Everything
         subCiphertexts.push_back(cryptoContext->EvalMult(ciphertextSub, ciphertextSub));
 	    std::cout << "SQUARE\n";
         cryptoContext->Decrypt(keyPair.secretKey, subCiphertexts[i], &plaintextDec);
 	plaintextDec->SetLength(8);
-        std::cout << plaintextDec->GetPackedValue() << std::endl;
+        std::cout << plaintextDec->GetCoefPackedValue() << std::endl;
     }
 
     // Calculate sum((xi - mean)^2)
@@ -200,8 +202,8 @@ plaintextDec->SetLength(8);
     TIC(t);
 
     // Plaintext Operations
-    int numberValues = plaintextDecAdd->GetCoefPackedValue().size();
-    double variance_sum = plaintextDecAdd->GetCoefPackedValue()[0]*-1 + plaintextDecAdd->GetCoefPackedValue()[numberValues - 1];
+//    int numberValues = plaintextDecAdd->GetCoefPackedValue().size();
+    double variance_sum = plaintextDecAdd->GetCoefPackedValue()[pow(2, number_rotations) - 1] + plaintextDecAdd->GetCoefPackedValue()[size_vectors - 1];
     double variance = variance_sum / pow(total_elements, 3); 
    
     // Print time spent on plaintext operations
