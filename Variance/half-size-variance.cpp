@@ -4,7 +4,7 @@
 
 using namespace lbcrypto;
 
-int64_t calculateSquareSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, std::vector<Plaintext> rotation_plaintexts,int64_t total_elements, int64_t number_rotations, int64_t size_vectors){
+Ciphertext<DCRTPoly> calculateSquareSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, std::vector<Plaintext> rotation_plaintexts,int64_t total_elements, int64_t number_rotations, int64_t size_vectors){
     std::vector<Ciphertext<DCRTPoly>> mult_ciphertexts;
 
     for(unsigned int i = 0; i < ciphertexts.size(); i++){
@@ -22,11 +22,7 @@ int64_t calculateSquareSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPo
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
 
-    Plaintext sumPlaintext;
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &sumPlaintext);
-    
-    int64_t sum = sumPlaintext->GetCoefPackedValue()[pow(2, number_rotations) - 1] + sumPlaintext->GetCoefPackedValue()[size_vectors - 1];
-    return sum;
+    return ciphertextAdd;
 }
 
 /*
@@ -59,8 +55,8 @@ int main(int argc, char *argv[]) {
 
     reverse(inverted_all_number_N.begin(), inverted_all_number_N.end());
 
-    // Due to the optimization we can do log(n) - 1 rotations
-    double number_rotations = ceil(log2(size_vectors)) - 1;
+    // Due to the optimization we can do log(n) rotations
+    double number_rotations = ceil(log2(size_vectors));
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
@@ -164,12 +160,16 @@ int main(int argc, char *argv[]) {
     // Homomorphic Operations 
 
     // Calculate the Square Mean
-    std::cout << "Total elements: " << total_elements << std::endl;
-    int64_t negSquareSum = calculateSquareSum(cryptoContext, keyPair, half_ciphertexts, rotation_plaintexts,total_elements, number_rotations, size_vectors) * -1;
+    auto negSquareSum = calculateSquareSum(cryptoContext, keyPair, half_ciphertexts, rotation_plaintexts,total_elements, number_rotations, size_vectors);
     
     // Calculate the Inner Product
     // Multiplying both vectors together will calculate the Inner Product value on the last index of the plaintext
     Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalMult(ciphertexts[0], inverted_ciphertexts[0]);
+     
+    ciphertextInnerProduct = cryptoContext->EvalMult(ciphertextInnerProduct,cryptoContext->MakeCoefPackedPlaintext({total_elements}));
+
+    // Subtract the mean from the inner product
+    auto ciphertextResult = cryptoContext->EvalSub(ciphertextInnerProduct, negSquareSum);
 
     // Print time spent on homomorphic operations
     TOC(t);
@@ -180,10 +180,10 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Decryption
-    Plaintext plaintextInnerProduct;
+    Plaintext plaintextResult;
  
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &plaintextInnerProduct);
-    plaintextInnerProduct->SetLength(20);
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextResult);
+    plaintextResult->SetLength(20);
 
     // Print time spent on decryption
     TOC(t);
@@ -194,9 +194,8 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    double variance = (plaintextInnerProduct->GetCoefPackedValue()[size_vectors - 1] * total_elements + negSquareSum) / pow(total_elements, 2); 
-    std::cout << plaintextInnerProduct->GetCoefPackedValue() << std::endl; 
-    std::cout << "Square Sum: " << negSquareSum << std::endl;
+    double variance = plaintextResult->GetCoefPackedValue()[size_vectors - 1] / pow(total_elements, 2); 
+
     // Print time spent on plaintext operations
     TOC(t);
     processingTimes[4] = TOC(t);
