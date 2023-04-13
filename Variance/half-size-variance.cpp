@@ -9,10 +9,11 @@ int64_t calculateSquareSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPo
 
     for(unsigned int i = 0; i < ciphertexts.size(); i++){
         for(unsigned int j = 0; j < ciphertexts.size(); j++){
-            mult_ciphertexts.push_back(cryptoContext->EvalMult(ciphertexts[i], ciphertexts[j]))
+            mult_ciphertexts.push_back(cryptoContext->EvalMult(ciphertexts[i], ciphertexts[j]));
         }
     }
-    auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
+    auto ciphertextAdd = cryptoContext->EvalAddMany(mult_ciphertexts);
+   
     auto ciphertextRot = ciphertextAdd;
 
     // For each iteration, rotate the vector through multiplication and then add it with the non rotated vector
@@ -125,7 +126,6 @@ int main(int argc, char *argv[]) {
         // Create vectors
         std::vector<int64_t> numbers(all_number_N.begin() + begin, all_number_N.begin() + end);
         std::vector<int64_t> inverted_numbers(inverted_all_number_N.begin() + begin, inverted_all_number_N.begin() + end);;
-        reverse(inverted_numbers.begin(), inverted_numbers.end());
 
         // Encode Plaintext with slot packing and encrypt it into a ciphertext vector
         Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(numbers);
@@ -164,34 +164,12 @@ int main(int argc, char *argv[]) {
     // Homomorphic Operations 
 
     // Calculate the Square Mean
-    int64_t negSum = calculateSum(cryptoContext, keyPair, half_ciphertexts, rotation_plaintexts,total_elements, number_rotations, size_vectors) * -1;
-    std::cout << "Square Sum: " << negSum;
+    std::cout << "Total elements: " << total_elements << std::endl;
+    int64_t negSquareSum = calculateSquareSum(cryptoContext, keyPair, half_ciphertexts, rotation_plaintexts,total_elements, number_rotations, size_vectors) * -1;
     
     // Calculate the Inner Product
     // Multiplying both vectors together will calculate the Inner Product value on the last index of the plaintext
     Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalMult(ciphertexts[0], inverted_ciphertexts[0]);
-
-    // Create plaintext with sum in all its indexes
-    std::vector<int64_t> sumVector(size_vectors, negSum);
-    Plaintext plaintextSum = cryptoContext->MakeCoefPackedPlaintext(sumVector);
-    
-   
-    // Calculate  (xi - mean)^2
-    std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
-
-    Plaintext plaintextDec;
- 
-    for(int i = 0; i < (int)ciphertexts.size(); i++){
-        // Calculate n*xi - sum(x)
-        auto ciphertextSub = cryptoContext->EvalAdd(ciphertexts[i], plaintextSum);
-        auto invertedCiphertextSub = cryptoContext->EvalAdd(inverted_ciphertexts[i],plaintextSum); 
-	
-        // Square Everything
-        subCiphertexts.push_back(cryptoContext->EvalMult(ciphertextSub, invertedCiphertextSub));
-    }
-
-    // Calculate sum((xi - mean)^2)
-    auto ciphertextAdd = cryptoContext->EvalAddMany(subCiphertexts);
 
     // Print time spent on homomorphic operations
     TOC(t);
@@ -202,10 +180,10 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Decryption
-    Plaintext plaintextDecAdd;
+    Plaintext plaintextInnerProduct;
  
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
-    plaintextDecAdd->SetLength(size_vectors);
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &plaintextInnerProduct);
+    plaintextInnerProduct->SetLength(20);
 
     // Print time spent on decryption
     TOC(t);
@@ -216,9 +194,9 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    double variance_sum = plaintextDecAdd->GetCoefPackedValue()[total_elements - 1];
-    double variance = variance_sum / pow(total_elements, 3); 
-   
+    double variance = (plaintextInnerProduct->GetCoefPackedValue()[size_vectors - 1] * total_elements + negSquareSum) / pow(total_elements, 2); 
+    std::cout << plaintextInnerProduct->GetCoefPackedValue() << std::endl; 
+    std::cout << "Square Sum: " << negSquareSum << std::endl;
     // Print time spent on plaintext operations
     TOC(t);
     processingTimes[4] = TOC(t);
