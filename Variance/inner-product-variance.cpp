@@ -4,26 +4,26 @@
 
 using namespace lbcrypto;
 
-Ciphertext<DCRTPoly> calculateSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations){
+Ciphertext<DCRTPoly> calculateSquareSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations){
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
 
     auto ciphertextRot = ciphertextAdd;
-    for(int i = 0; i < number_rotations; i++){
+    for(int i = 0; i <= number_rotations; i++){
         ciphertextRot = cryptoContext->EvalRotate(ciphertextAdd, pow(2, i));
 
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
 
-    return ciphertextAdd;
+    return cryptoContext->EvalMult(ciphertextAdd, ciphertextAdd);
 }
 
 Ciphertext<DCRTPoly> calculateInnerProduct(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations){
     // Start by Multiplying both vectors together
-    Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
+    Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[0]);
     
     // Rotate and sum until all values are summed together
     Ciphertext<DCRTPoly> ciphertextRot;
-    for(int i = 0; i < number_rotations; i++){
+    for(int i = 0; i <= number_rotations; i++){
         ciphertextRot = cryptoContext->EvalRotate(ciphertextResult, pow(2, i));
      
         ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
     
     // Generate the rotation evaluation keys
     std::vector<int32_t> rotation_indexes;
-    for(int i = 0; i < number_rotations; i++){
+    for(int i = 0; i <= number_rotations; i++){
        rotation_indexes.push_back(pow(2,i)); // Rotate always in 2^i
     }
 
@@ -132,13 +132,17 @@ int main(int argc, char *argv[]) {
     // Homomorphic Operations 
     Plaintext holdPlaintext;
     // Calculate the Sum
-    Ciphertext<DCRTPoly> sumCiphertext = calculateSum(cryptoContext, keyPair, ciphertexts, number_rotations);
+    Ciphertext<DCRTPoly> sumCiphertext = calculateSquareSum(cryptoContext, keyPair, ciphertexts, number_rotations);
     cryptoContext->Decrypt(keyPair.secretKey, sumCiphertext, &holdPlaintext);
     holdPlaintext->SetLength(size_vectors);
     std::cout << holdPlaintext->GetPackedValue() << std::endl;
     
     // Calculate the Inner Product
     Ciphertext<DCRTPoly> innerProductCiphertext = calculateInnerProduct(cryptoContext, keyPair, ciphertexts, number_rotations);
+
+    // Create Plaintext to multiply with inner product
+    Plaintext nPlaintext = cryptoContext->MakePackedPlaintext({total_elements});
+    innerProductCiphertext = cryptoContext->EvalMult(innerProductCiphertext, nPlaintext);
     cryptoContext->Decrypt(keyPair.secretKey, innerProductCiphertext, &holdPlaintext);
     holdPlaintext->SetLength(size_vectors);
     std::cout << holdPlaintext->GetPackedValue() << std::endl;
@@ -157,7 +161,7 @@ int main(int argc, char *argv[]) {
     // Decryption
     Plaintext plaintextDecAdd;
  
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
+    cryptoContext->Decrypt(keyPair.secretKey, resultCiphertext, &plaintextDecAdd);
     plaintextDecAdd->SetLength(size_vectors);
     std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
 
