@@ -112,9 +112,9 @@ int main(int argc, char *argv[]) {
         begin = i * size_vectors;
         end = size_vectors * (i + 1);
 
-	// Create vectors
-	std::vector<int64_t> numbers(all_number_N.begin() + begin, all_number_N.begin() + end);
-	std::vector<int64_t> inverted_numbers = numbers;
+        // Create vectors
+        std::vector<int64_t> numbers(all_number_N.begin() + begin, all_number_N.begin() + end);
+        std::vector<int64_t> inverted_numbers = numbers;
         reverse(inverted_numbers.begin(), inverted_numbers.end());
 
         // Encode Plaintext with slot packing and encrypt it into a ciphertext vector

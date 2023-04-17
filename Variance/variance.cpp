@@ -134,24 +134,12 @@ std::vector<int64_t> totalVector(size_vectors, total_elements);
     for(int i = 0; i < (int)ciphertexts.size(); i++){
         // Calculate n*xi
         auto ciphetextMul = cryptoContext->EvalMult(ciphertexts[i], plaintextTotalElems);
-    //    std::cout << "MULTIPLIED" << std::endl;
-  //      cryptoContext->Decrypt(keyPair.secretKey, ciphetextMul, &plaintextDec);
-//	plaintextDec->SetLength(8);
-       // std::cout << plaintextDec->GetPackedValue() << std::endl;
-        
+
         // Calculate n*xi - sum(x)
         auto ciphertextSub = cryptoContext->EvalAdd(ciphetextMul, plaintextSum);
-	//    std::cout << "ADDED\n";
-      //  cryptoContext->Decrypt(keyPair.secretKey, ciphertextSub, &plaintextDec);
-//plaintextDec->SetLength(8);
-    //    std::cout << plaintextDec->GetPackedValue() << std::endl;
         
         // Square Everything
         subCiphertexts.push_back(cryptoContext->EvalMult(ciphertextSub, ciphertextSub));
-//	    std::cout << "SQUARE\n";
-  //      cryptoContext->Decrypt(keyPair.secretKey, subCiphertexts[i], &plaintextDec);
-//	plaintextDec->SetLength(8);
-  //      std::cout << plaintextDec->GetPackedValue() << std::endl;
     }
 
     // Calculate sum((xi - mean)^2)

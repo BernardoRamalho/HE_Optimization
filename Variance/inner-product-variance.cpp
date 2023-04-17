@@ -8,7 +8,7 @@ Ciphertext<DCRTPoly> calculateSquareSum(CryptoContext<DCRTPoly> cryptoContext, K
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
 
     auto ciphertextRot = ciphertextAdd;
-    for(int i = 0; i <= number_rotations; i++){
+    for(int i = 0; i < number_rotations; i++){
         ciphertextRot = cryptoContext->EvalRotate(ciphertextAdd, pow(2, i));
 
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
@@ -23,7 +23,7 @@ Ciphertext<DCRTPoly> calculateInnerProduct(CryptoContext<DCRTPoly> cryptoContext
     
     // Rotate and sum until all values are summed together
     Ciphertext<DCRTPoly> ciphertextRot;
-    for(int i = 0; i <= number_rotations; i++){
+    for(int i = 0; i < number_rotations; i++){
         ciphertextRot = cryptoContext->EvalRotate(ciphertextResult, pow(2, i));
      
         ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
     
     // Generate the rotation evaluation keys
     std::vector<int32_t> rotation_indexes;
-    for(int i = 0; i <= number_rotations; i++){
+    for(int i = 0; i < number_rotations; i++){
        rotation_indexes.push_back(pow(2,i)); // Rotate always in 2^i
     }
 
@@ -130,12 +130,9 @@ int main(int argc, char *argv[]) {
     TIC(t);
 	    
     // Homomorphic Operations 
-    Plaintext holdPlaintext;
+
     // Calculate the Sum
     Ciphertext<DCRTPoly> sumCiphertext = calculateSquareSum(cryptoContext, keyPair, ciphertexts, number_rotations);
-    cryptoContext->Decrypt(keyPair.secretKey, sumCiphertext, &holdPlaintext);
-    holdPlaintext->SetLength(size_vectors);
-    std::cout << holdPlaintext->GetPackedValue() << std::endl;
     
     // Calculate the Inner Product
     Ciphertext<DCRTPoly> innerProductCiphertext = calculateInnerProduct(cryptoContext, keyPair, ciphertexts, number_rotations);
@@ -143,9 +140,6 @@ int main(int argc, char *argv[]) {
     // Create Plaintext to multiply with inner product
     Plaintext nPlaintext = cryptoContext->MakePackedPlaintext({total_elements});
     innerProductCiphertext = cryptoContext->EvalMult(innerProductCiphertext, nPlaintext);
-    cryptoContext->Decrypt(keyPair.secretKey, innerProductCiphertext, &holdPlaintext);
-    holdPlaintext->SetLength(size_vectors);
-    std::cout << holdPlaintext->GetPackedValue() << std::endl;
 
     // Subtract the Sum from the Inner Product
     auto resultCiphertext = cryptoContext->EvalSub(innerProductCiphertext, sumCiphertext);
