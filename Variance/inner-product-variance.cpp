@@ -157,7 +157,6 @@ int main(int argc, char *argv[]) {
  
     cryptoContext->Decrypt(keyPair.secretKey, resultCiphertext, &plaintextDecAdd);
     plaintextDecAdd->SetLength(size_vectors);
-    std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
 
     // Print time spent on decryption
     TOC(t);
