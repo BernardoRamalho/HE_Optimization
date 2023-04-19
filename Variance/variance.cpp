@@ -4,7 +4,7 @@
 
 using namespace lbcrypto;
 
-int64_t calculateSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations, int64_t size_vectors){
+Ciphertext<DCRTPoly> calculateSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations, int64_t size_vectors){
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
 
     auto ciphertextRot = ciphertextAdd;
@@ -13,11 +13,8 @@ int64_t calculateSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> ke
 
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
-
-    Plaintext meanPlaintext;
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &meanPlaintext);
-    int64_t sum = (meanPlaintext->GetPackedValue()[0] + meanPlaintext->GetPackedValue()[size_vectors/2]);
-    return sum;
+    
+    return ciphertextAdd;
 }
 
 /*
@@ -48,7 +45,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Due to the optimization we can do log(n) - 1 rotations
-    double number_rotations = ceil(log2(size_vectors)) - 1;
+    double number_rotations = ceil(log2(size_vectors));
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
@@ -57,7 +54,7 @@ int main(int argc, char *argv[]) {
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(65537);
+    parameters.SetPlaintextModulus(70000607233);
     parameters.SetMultiplicativeDepth(2);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
@@ -120,26 +117,33 @@ int main(int argc, char *argv[]) {
     // Homomorphic Operations 
 
     // Calculate the Mean
-    int64_t negSum = calculateSum(cryptoContext, keyPair, ciphertexts, number_rotations, size_vectors) * -1;
-    std::vector<int64_t> sumVector(size_vectors, negSum);
-    Plaintext plaintextSum = cryptoContext->MakePackedPlaintext(sumVector);
-std::vector<int64_t> totalVector(size_vectors, total_elements);
+    Ciphertext<DCRTPoly> negSumCiphertext = calculateSum(cryptoContext, keyPair, ciphertexts, number_rotations, size_vectors);
+
+    std::vector<int64_t> totalVector(size_vectors, total_elements);
     Plaintext plaintextTotalElems = cryptoContext->MakePackedPlaintext(totalVector);
-    // Calculate  (xi - mean)^2
+    std::cout << "Lenght of array: " << totalVector.size();
+
     std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
-   // std::cout << "Sum CACULATED: " << negSum << std::endl;
 
     Plaintext plaintextDec;
  
     for(int i = 0; i < (int)ciphertexts.size(); i++){
         // Calculate n*xi
-        auto ciphetextMul = cryptoContext->EvalMult(ciphertexts[i], plaintextTotalElems);
+        auto ciphertextMul = cryptoContext->EvalMult(ciphertexts[i], plaintextTotalElems);
+//cryptoContext->Decrypt(keyPair.secretKey, ciphertexts[i], &plaintextDec);
+// std::cout << plaintextDec->GetPackedValue().size() << std::endl;
 
         // Calculate n*xi - sum(x)
-        auto ciphertextSub = cryptoContext->EvalAdd(ciphetextMul, plaintextSum);
-        
+        auto ciphertextSub = cryptoContext->EvalSub(ciphertextMul, negSumCiphertext);
+// cryptoContext->Decrypt(keyPair.secretKey, ciphertextSub, &plaintextDec);
+ // std::cout << plaintextDec->GetPackedValue() << std::endl;
+
+       
         // Square Everything
-        subCiphertexts.push_back(cryptoContext->EvalMult(ciphertextSub, ciphertextSub));
+        subCiphertexts.push_back(cryptoContext->EvalSquare(ciphertextSub));
+// cryptoContext->Decrypt(keyPair.secretKey,subCiphertexts[i], &plaintextDec);
+ // std::cout << plaintextDec->GetPackedValue() << std::endl;
+
     }
 
     // Calculate sum((xi - mean)^2)
@@ -166,7 +170,7 @@ std::vector<int64_t> totalVector(size_vectors, total_elements);
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
     plaintextDecAdd->SetLength(size_vectors);
-
+    std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
     // Print time spent on decryption
     TOC(t);
     processingTimes[3] = TOC(t);
