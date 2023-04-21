@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(70000607233);
+    parameters.SetPlaintextModulus(7000000462849);
     parameters.SetMultiplicativeDepth(2);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
@@ -125,25 +125,16 @@ int main(int argc, char *argv[]) {
 
     std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
 
-    Plaintext plaintextDec;
- 
     for(int i = 0; i < (int)ciphertexts.size(); i++){
         // Calculate n*xi
         auto ciphertextMul = cryptoContext->EvalMult(ciphertexts[i], plaintextTotalElems);
-//cryptoContext->Decrypt(keyPair.secretKey, ciphertexts[i], &plaintextDec);
-// std::cout << plaintextDec->GetPackedValue().size() << std::endl;
 
         // Calculate n*xi - sum(x)
         auto ciphertextSub = cryptoContext->EvalSub(ciphertextMul, negSumCiphertext);
-// cryptoContext->Decrypt(keyPair.secretKey, ciphertextSub, &plaintextDec);
- // std::cout << plaintextDec->GetPackedValue() << std::endl;
 
        
         // Square Everything
         subCiphertexts.push_back(cryptoContext->EvalSquare(ciphertextSub));
-// cryptoContext->Decrypt(keyPair.secretKey,subCiphertexts[i], &plaintextDec);
- // std::cout << plaintextDec->GetPackedValue() << std::endl;
-
     }
 
     // Calculate sum((xi - mean)^2)
@@ -170,7 +161,6 @@ int main(int argc, char *argv[]) {
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
     plaintextDecAdd->SetLength(size_vectors);
-    std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
     // Print time spent on decryption
     TOC(t);
     processingTimes[3] = TOC(t);
@@ -180,8 +170,7 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    double variance_sum = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[size_vectors/2];
-    double variance = variance_sum / pow(total_elements, 3); 
+    double variance = plaintextDecAdd->GetPackedValue()[0] / pow(total_elements, 3); 
    
     // Print time spent on plaintext operations
     TOC(t);
