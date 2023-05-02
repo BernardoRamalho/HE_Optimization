@@ -78,7 +78,12 @@ int main() {
   
   // Decrypt and save it
   cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
-  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+std::vector<int64_t> veci2(plaintextDecAdd->GetPackedValue().begin(), plaintextDecAdd->GetPackedValue().begin() + 4096);
+std::vector<int64_t> vecf2(plaintextDecAdd->GetPackedValue().begin() + 4096, plaintextDecAdd->GetPackedValue().end());
+
+  std::cout <<veci2 << std::endl;
+   std::cout <<vecf2 << std::endl;
+ 
 
    //              //
   // ROTATE by 30  //
@@ -91,8 +96,12 @@ int main() {
   
   // Decrypt and save it
   cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
-  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
- 
+ std::vector<int64_t> veci30(plaintextDecAdd->GetPackedValue().begin(), plaintextDecAdd->GetPackedValue().begin() + 4096);
+std::vector<int64_t> vecf30(plaintextDecAdd->GetPackedValue().begin() + 4096, plaintextDecAdd->GetPackedValue().end());
+
+
+  std::cout <<veci30 << std::endl;
+   std::cout <<vecf30 << std::endl;
     //              //
   // ROTATE by 2192  //
   //              //
@@ -104,8 +113,13 @@ int main() {
   
   // Decrypt and save it
   cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
-  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
- 
+ std::vector<int64_t> veci2192(plaintextDecAdd->GetPackedValue().begin(), plaintextDecAdd->GetPackedValue().begin() + 4096);
+std::vector<int64_t> vecf2192(plaintextDecAdd->GetPackedValue().begin() + 4096, plaintextDecAdd->GetPackedValue().end());
+
+
+  std::cout <<veci2192 << std::endl;
+   std::cout <<vecf2192 << std::endl;
+  
   //                //
   // ROTATE by 4096 //
   //                //
@@ -117,7 +131,11 @@ int main() {
 
   // Decrypt and save it
   cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
-  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+  std::vector<int64_t> veci4096(plaintextDecAdd->GetPackedValue().begin(), plaintextDecAdd->GetPackedValue().begin() + 4096);
+std::vector<int64_t> vecf4096(plaintextDecAdd->GetPackedValue().begin() + 4096, plaintextDecAdd->GetPackedValue().end());
+
+  std::cout <<veci4096 << std::endl;
+   std::cout <<vecf4096 << std::endl;
   
  //                //
   // ROTATE by 6000 //
@@ -130,8 +148,12 @@ int main() {
 
   // Decrypt and save it
   cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
-  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
-    
+   std::vector<int64_t> veci6000(plaintextDecAdd->GetPackedValue().begin(), plaintextDecAdd->GetPackedValue().begin() + 4096);
+std::vector<int64_t> vecf6000(plaintextDecAdd->GetPackedValue().begin() + 4096, plaintextDecAdd->GetPackedValue().end());
+
+  std::cout <<veci6000 << std::endl;
+   std::cout <<vecf6000 << std::endl;
+ 
   //                //
   // ROTATE by 8191 //
   //                //
@@ -143,7 +165,11 @@ int main() {
 
   // Decrypt and save it
   cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
-  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+  std::vector<int64_t> veci8191(plaintextDecAdd->GetPackedValue().begin(), plaintextDecAdd->GetPackedValue().begin() + 4096);
+std::vector<int64_t> vecf8191(plaintextDecAdd->GetPackedValue().begin() + 4096, plaintextDecAdd->GetPackedValue().end());
+
+  std::cout <<veci8191 << std::endl;
+   std::cout <<vecf8191 << std::endl;
   
   //                //
   // ROTATE by 8192 //
@@ -156,7 +182,11 @@ int main() {
 
   // Decrypt and save it
   cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
-  std::cout << plaintextDecAdd->GetPackedValue() << std::endl;
+std::vector<int64_t> veci8192(plaintextDecAdd->GetPackedValue().begin(), plaintextDecAdd->GetPackedValue().begin() + 4096);
+std::vector<int64_t> vecf8192(plaintextDecAdd->GetPackedValue().begin() + 4096, plaintextDecAdd->GetPackedValue().end());
 
+  std::cout <<veci8192 << std::endl;
+   std::cout <<vecf8192 << std::endl;
+  
   return 0;
 }
