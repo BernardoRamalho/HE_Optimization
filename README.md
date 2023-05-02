@@ -91,3 +91,56 @@ This is also based on the optimization done for the Mean implementation with rot
 Since multiplication works as a polynomial multiplication we actually don't need to use rotation. If we reverse the second vector and multiply it with the first, due to how polynomial multiplication works, we get the value of the inner product at the last index.
 
 With this we save all the time we would use with rotation and only need to do one multiplication.
+
+# Variance
+
+## First Approach
+
+In our first approach to implement the Variance we simplified the original formula into: **sum(n*xi - sum(x))/n^3**
+
+For this approach we tried implementing a version with slot packing and with coefficient packing. In all the implementation we found the same main problem, the plaintext needs to be very large in order to accomodate for the sum(x) and the n*xi values.
+
+### Slot Packing Implementation
+
+In this implementation we start by calculating the sum(x) using the same method as in the mean except we do one more rotation in order for all the elements of the plaintext to be the value of the summation.
+
+In order to multiply xi by n, a plaintext is need where all the elements are equal to n (which is the total number of elements).
+
+After these two operations we just have to subtract the first result from the second and square the final output.
+
+In order to finish we need to use again the summation algorithm used in the mean to get the final total value of the summation.
+
+After decrypting that ciphertext, we divide the value in the first element by n^3 and we get the value of the variance.
+
+### Coef Packing Implementation
+
+We tried implemented using Coef Packing but we found that is too difficult. This is because, due to how operation in these kind of packing work, it is extremly difficult to get the value of sum(xi) in all elements of a ciphertext without decrypting and encrypting again in the middle of the operations. These goes agaisn't the aim of this project and, as such, we cut, for now, this implementation. 
+
+## Second Approach
+
+The second approach comes from a paper that show that the variance can be calculated as such: **(n*X*X - sum(x)^2)/n^2**
+
+For this approach we implemented a version with slot packing and coefficient packing. In all the implementation we found the same main problem, the plaintext needs to be very large in order to accomodate for sum(x)^2 and n*X*X.
+
+
+### Slot Packing Implementation
+
+In this implementation we start by doing two operation in parallel. 
+
+The first one is calculating the square of the sum. To do this we use the same algorithm as always to calculate the sum of all elements but we multiply the resulting ciphertext by itself in the end to get the squared value.
+
+The second operation done is calculate the inner product. This is also easily done by multiplying the ciphertext with itself in order to get everything squared and then use the same algorithm as before to calculate the sum of all the elements.
+
+After this operation are done, we multiply the inner product result by a plaintext where all elements are n in order to get n*X*X.
+
+To finish we just need to subtract the square of the sum from the inner product and we can decrypt the resulting ciphertext and extract the first element. If we divide this element by n^2 we get the variance value.
+
+### Coef Packing Implementation
+
+For this implementation we have to encrypt some extra ciphertexts. We still start by doing the two same operation in parallel.
+
+In order to calculate the square of the sum we actually have to divide the ciphertexts in half. This make it so that if we just multiply each ciphertext with every ciphertext and then sum everything together we get the square of the sum.
+
+In order to calculate the inner product we need to encrypt another ciphertext where all the values and reversed (the first element is in the last position and the last element is in the first position). This makes it so we just have to multiply the normal ciphertext with the inverted one and sum all the elements together to get the inner product. 
+
+After multiplying the inner product result with n (the same way we did for the slot packing) we just have to subtract the square of the sum from the inner product. We then decrypt the resulting ciphertext and dive the last element with n^2 to get the variance value.

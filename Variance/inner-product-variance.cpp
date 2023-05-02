@@ -1,37 +1,35 @@
-/**
- * @file optimized-rotation-mean.cpp
- * @author Bernardo Ramalho
- * @brief Optimized FHE implementation of the mean of n values using Slot Packing
- * @version 0.1
- * @date 2023-04-05
- * 
- * @copyright Copyright (c) 2023
- * 
- */
-
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
 
 using namespace lbcrypto;
 
-void printIntoCSV(std::vector<double> processingTimes, double total_time, double mean){
-    // Open the file
-    std::string filePath;
+Ciphertext<DCRTPoly> calculateSquareSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations){
+    auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
 
-    std::ofstream meanCSV("timeCSVs/mean.csv", std::ios_base::app);
-    std::cout.rdbuf(meanCSV.rdbuf()); //redirect std::cout to out.txt!
-    
-    std::cout << "\nopt-rot, ";
+    auto ciphertextRot = ciphertextAdd;
+    for(int i = 0; i < number_rotations; i++){
+        ciphertextRot = cryptoContext->EvalRotate(ciphertextAdd, pow(2, i));
 
-    for(unsigned int i = 0; i < processingTimes.size(); i++){
-        std::cout << processingTimes[i] << ", ";
+        ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
-    std::cout << total_time << ", ";
+
+    return cryptoContext->EvalMult(ciphertextAdd, ciphertextAdd);
+}
+
+Ciphertext<DCRTPoly> calculateInnerProduct(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations){
+    // Start by Multiplying both vectors together
+    Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[0]);
     
-    std::cout << mean << std::endl;
- 
-    meanCSV.close();
+    // Rotate and sum until all values are summed together
+    Ciphertext<DCRTPoly> ciphertextRot;
+    for(int i = 0; i < number_rotations; i++){
+        ciphertextRot = cryptoContext->EvalRotate(ciphertextResult, pow(2, i));
+     
+        ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);
+    }
+
+    return ciphertextResult;
 }
 
 /*
@@ -62,7 +60,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Due to the optimization we can do log(n) - 1 rotations
-    double number_rotations = ceil(log2(size_vectors)) - 1;
+    double number_rotations = ceil(log2(size_vectors));
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
@@ -71,7 +69,7 @@ int main(int argc, char *argv[]) {
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(65537);
+    parameters.SetPlaintextModulus(7000000462849);
     parameters.SetMultiplicativeDepth(2);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
@@ -132,15 +130,19 @@ int main(int argc, char *argv[]) {
     TIC(t);
 	    
     // Homomorphic Operations 
-    auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
 
-    auto ciphertextRot = ciphertextAdd;
+    // Calculate the Sum
+    Ciphertext<DCRTPoly> sumCiphertext = calculateSquareSum(cryptoContext, keyPair, ciphertexts, number_rotations);
+    
+    // Calculate the Inner Product
+    Ciphertext<DCRTPoly> innerProductCiphertext = calculateInnerProduct(cryptoContext, keyPair, ciphertexts, number_rotations);
 
-    for(int i = 0; i < number_rotations; i++){
-        ciphertextRot = cryptoContext->EvalRotate(ciphertextAdd, pow(2, i));
+    // Create Plaintext to multiply with inner product
+    Plaintext nPlaintext = cryptoContext->MakePackedPlaintext({total_elements});
+    innerProductCiphertext = cryptoContext->EvalMult(innerProductCiphertext, nPlaintext);
 
-        ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
-    }
+    // Subtract the Sum from the Inner Product
+    auto resultCiphertext = cryptoContext->EvalSub(innerProductCiphertext, sumCiphertext);
 
     // Print time spent on homomorphic operations
     TOC(t);
@@ -153,7 +155,7 @@ int main(int argc, char *argv[]) {
     // Decryption
     Plaintext plaintextDecAdd;
  
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
+    cryptoContext->Decrypt(keyPair.secretKey, resultCiphertext, &plaintextDecAdd);
     plaintextDecAdd->SetLength(size_vectors);
 
     // Print time spent on decryption
@@ -165,8 +167,7 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    double mean_sum = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[size_vectors/2];
-    double mean = mean_sum / total_elements; 
+    double variance = plaintextDecAdd->GetPackedValue()[0] / pow(total_elements, 2); 
    
     // Print time spent on plaintext operations
     TOC(t);
@@ -178,7 +179,5 @@ int main(int argc, char *argv[]) {
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
     std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    std::cout << "Mean: " << mean << std::endl;
-    
-    printIntoCSV(processingTimes, total_time, mean);
+    std::cout << "Variance: " << variance << std::endl;
 }

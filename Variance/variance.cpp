@@ -1,37 +1,20 @@
-/**
- * @file optimized-rotation-mean.cpp
- * @author Bernardo Ramalho
- * @brief Optimized FHE implementation of the mean of n values using Slot Packing
- * @version 0.1
- * @date 2023-04-05
- * 
- * @copyright Copyright (c) 2023
- * 
- */
-
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
 
 using namespace lbcrypto;
 
-void printIntoCSV(std::vector<double> processingTimes, double total_time, double mean){
-    // Open the file
-    std::string filePath;
+Ciphertext<DCRTPoly> calculateSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations, int64_t size_vectors){
+    auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
 
-    std::ofstream meanCSV("timeCSVs/mean.csv", std::ios_base::app);
-    std::cout.rdbuf(meanCSV.rdbuf()); //redirect std::cout to out.txt!
-    
-    std::cout << "\nopt-rot, ";
+    auto ciphertextRot = ciphertextAdd;
+    for(int i = 0; i < number_rotations; i++){
+        ciphertextRot = cryptoContext->EvalRotate(ciphertextAdd, pow(2, i));
 
-    for(unsigned int i = 0; i < processingTimes.size(); i++){
-        std::cout << processingTimes[i] << ", ";
+        ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
-    std::cout << total_time << ", ";
     
-    std::cout << mean << std::endl;
- 
-    meanCSV.close();
+    return ciphertextAdd;
 }
 
 /*
@@ -62,7 +45,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Due to the optimization we can do log(n) - 1 rotations
-    double number_rotations = ceil(log2(size_vectors)) - 1;
+    double number_rotations = ceil(log2(size_vectors));
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
@@ -71,7 +54,7 @@ int main(int argc, char *argv[]) {
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(65537);
+    parameters.SetPlaintextModulus(7000000462849);
     parameters.SetMultiplicativeDepth(2);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
@@ -132,7 +115,30 @@ int main(int argc, char *argv[]) {
     TIC(t);
 	    
     // Homomorphic Operations 
-    auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
+
+    // Calculate the Mean
+    Ciphertext<DCRTPoly> negSumCiphertext = calculateSum(cryptoContext, keyPair, ciphertexts, number_rotations, size_vectors);
+
+    std::vector<int64_t> totalVector(size_vectors, total_elements);
+    Plaintext plaintextTotalElems = cryptoContext->MakePackedPlaintext(totalVector);
+    std::cout << "Lenght of array: " << totalVector.size();
+
+    std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
+
+    for(int i = 0; i < (int)ciphertexts.size(); i++){
+        // Calculate n*xi
+        auto ciphertextMul = cryptoContext->EvalMult(ciphertexts[i], plaintextTotalElems);
+
+        // Calculate n*xi - sum(x)
+        auto ciphertextSub = cryptoContext->EvalSub(ciphertextMul, negSumCiphertext);
+
+       
+        // Square Everything
+        subCiphertexts.push_back(cryptoContext->EvalSquare(ciphertextSub));
+    }
+
+    // Calculate sum((xi - mean)^2)
+    auto ciphertextAdd = cryptoContext->EvalAddMany(subCiphertexts);
 
     auto ciphertextRot = ciphertextAdd;
 
@@ -141,7 +147,7 @@ int main(int argc, char *argv[]) {
 
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
-
+    
     // Print time spent on homomorphic operations
     TOC(t);
     processingTimes[2] = TOC(t);
@@ -155,7 +161,6 @@ int main(int argc, char *argv[]) {
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
     plaintextDecAdd->SetLength(size_vectors);
-
     // Print time spent on decryption
     TOC(t);
     processingTimes[3] = TOC(t);
@@ -165,8 +170,7 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    double mean_sum = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[size_vectors/2];
-    double mean = mean_sum / total_elements; 
+    double variance = plaintextDecAdd->GetPackedValue()[0] / pow(total_elements, 3); 
    
     // Print time spent on plaintext operations
     TOC(t);
@@ -178,7 +182,5 @@ int main(int argc, char *argv[]) {
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
     std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    std::cout << "Mean: " << mean << std::endl;
-    
-    printIntoCSV(processingTimes, total_time, mean);
+    std::cout << "Variance: " << variance << std::endl;
 }
