@@ -43,7 +43,7 @@ int main() {
   keyPair = cryptoContext->KeyGen();
 
   // Generate the rotation evaluation keys
-  cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {2, 30, 2192, 4096, 4097, 6000, 8191, 8192});    
+  cryptoContext->EvalRotateKeyGen(keyPair.secretKey, {2, 30, 2192,4095, 4096, 4097, 6000, 8191, 8192});    
 
   // Generate the relinearization key
   cryptoContext->EvalMultKeyGen(keyPair.secretKey);
@@ -119,7 +119,24 @@ std::vector<int64_t> vecf2192(plaintextDecAdd->GetPackedValue().begin() + 4096, 
 
   std::cout <<veci2192 << std::endl;
    std::cout <<vecf2192 << std::endl;
+  //                //
+  // ROTATE by 4095 //
+  //                //
+  rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 4095);
+
+  // Open the file
+  std::ofstream out4095("slotRotResults/rot4095.txt");
+  std::cout.rdbuf(out4095.rdbuf());
+
+  // Decrypt and save it
+  cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+  std::vector<int64_t> veci4095(plaintextDecAdd->GetPackedValue().begin(), plaintextDecAdd->GetPackedValue().begin() + 4096);
+std::vector<int64_t> vecf4095(plaintextDecAdd->GetPackedValue().begin() + 4096, plaintextDecAdd->GetPackedValue().end());
+
+  std::cout <<veci4095 << std::endl;
+   std::cout <<vecf4095 << std::endl;
   
+
   //                //
   // ROTATE by 4096 //
   //                //
@@ -136,7 +153,25 @@ std::vector<int64_t> vecf4096(plaintextDecAdd->GetPackedValue().begin() + 4096, 
 
   std::cout <<veci4096 << std::endl;
    std::cout <<vecf4096 << std::endl;
+  //                //
+  // ROTATE by 4097 //
+  //                //
+  rotCipher = cryptoContext->EvalRotate(ciphertexts[0], 4097);
+
+  // Open the file
+  std::ofstream out4097("slotRotResults/rot4097.txt");
+  std::cout.rdbuf(out4097.rdbuf());
+
+  // Decrypt and save it
+  cryptoContext->Decrypt(keyPair.secretKey, rotCipher, &plaintextDecAdd);
+  std::vector<int64_t> veci4097(plaintextDecAdd->GetPackedValue().begin(), plaintextDecAdd->GetPackedValue().begin() + 4096);
+std::vector<int64_t> vecf4097(plaintextDecAdd->GetPackedValue().begin() + 4096, plaintextDecAdd->GetPackedValue().end());
+
+  std::cout <<veci4097 << std::endl;
+   std::cout <<vecf4097 << std::endl;
   
+
+
  //                //
   // ROTATE by 6000 //
   //                //
