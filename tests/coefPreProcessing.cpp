@@ -34,6 +34,26 @@ std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t al
     return pre_processed_values;
 }
 
+std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_values, int64_t inverse_alpha, int64_t plaintext_modulus){
+    std::vector<int64_t> post_processed_values;
+    int64_t inverse_alpha_value = 1, post_processed_value;
+
+    for(unsigned int i = 0; i < pre_processed_values.size(); i++){
+        
+        if(pre_processed_values[i] < 0){
+            pre_processed_values[i] += plaintext_modulus;
+        }
+
+        post_processed_value = pre_processed_values[i] * inverse_alpha_value % plaintext_modulus;
+
+        inverse_alpha_value = inverse_alpha_value * inverse_alpha % plaintext_modulus;
+
+        post_processed_values.push_back(post_processed_value);
+    }
+
+    return post_processed_values;
+}
+
 std::vector<Plaintext> generate_rotation_plaintexts(int64_t number_rotations, CryptoContext<DCRTPoly> cryptoContext){
     std::vector<Plaintext> rotation_plaintexts;
     Plaintext plaintextRot;
@@ -87,11 +107,7 @@ int main(int argc, char *argv[]) {
 
     // Due to the optimization we can do log(n) - 1 rotations
     //int64_t number_rotations = (int64_t)ceil(log2(size_vectors));
-     TimeVar t;
-    std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
-
-    TIC(t);
-
+    
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
     parameters.SetPlaintextModulus(plaintext_modulus);
@@ -118,18 +134,10 @@ int main(int argc, char *argv[]) {
     // Generate the rotation plaintexts
     //std::vector<Plaintext> rotation_plaintexts = generate_rotation_plaintexts(number_rotations, cryptoContext);
     //std::cout << rotation_plaintexts << std::endl;
-    
-    // Print time spent on setup
-    TOC(t);
-    processingTimes[0] = TOC(t);
-    
-    std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
-
-    TIC(t);
 
     // Create Plaintexts
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
-   Ciphertext<DCRTPoly> processedCipher; 
+    Ciphertext<DCRTPoly> processedCipher; 
     int begin, end;
     
     for(int i = 0; i < number_vectors; i++){
@@ -141,53 +149,15 @@ int main(int argc, char *argv[]) {
         Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(pre_processed_numbers.begin() + begin, pre_processed_numbers.begin() + end));
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
-
-    // Print time spent on encryption
-    TOC(t);
-    processingTimes[1] = TOC(t);
- 
-    std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
-    
-    TIC(t);
 	    
     // Homomorphic Operations 
     auto ciphertextAdd = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[0]); 
-    // Print time spent on homomorphic operations
-    TOC(t);
-    processingTimes[2] = TOC(t);
- 
-    std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
-    
-    TIC(t);
 
     // Decryption
-    Plaintext plaintextDecAdd;
+    Plaintext plaintextDec;
  
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDec);
 
-    // Print time spent on decryption
-    TOC(t);
-    processingTimes[3] = TOC(t);
-    std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
-   TIC(t);
-
-    // Plaintext Operations
-    int numberValues = plaintextDecAdd->GetCoefPackedValue().size();
-    
-    double mean_sum = plaintextDecAdd->GetCoefPackedValue()[0]*-1 + plaintextDecAdd->GetCoefPackedValue()[numberValues - 1];
-   
-    double mean = mean_sum / total_elements; 
-
-    // Print time spent on plaintext operations
-    TOC(t);
-    processingTimes[4] = TOC(t);
- 
-    std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
-    
-    // Calculate and print final time and value
-    double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
-
-    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    std::cout << "Mean: " << mean << std::endl;
-
+    std::vector<int64_t> post_processed_values = post_process_numbers(plaintextDec->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
+    std::cout << post_processed_values << std::endl;
 }
