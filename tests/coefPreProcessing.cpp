@@ -14,6 +14,43 @@
 #include <fstream>
 
 using namespace lbcrypto;
+
+std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
+    std::vector<int64_t> pre_processed_values;
+    int64_t alpha_value = 1, pre_processed_value;
+
+    for(unsigned int i = 0; i < values.size(); i++){
+        pre_processed_value = values[i] * alpha_value % plaintext_modulus;
+
+        alpha_value = alpha_value * alpha % plaintext_modulus;
+
+        if(pre_processed_value > (plaintext_modulus - 1 ) /2){
+		    pre_processed_value = pre_processed_value - plaintext_modulus;
+	    }
+
+        pre_processed_values.push_back(pre_processed_value);
+    }
+
+    return pre_processed_values;
+}
+
+std::vector<Plaintext> generate_rotation_plaintexts(int64_t number_rotations, CryptoContext<DCRTPoly> cryptoContext){
+    std::vector<Plaintext> rotation_plaintexts;
+    Plaintext plaintextRot;
+
+    for(int i = 0; i < number_rotations; i++){
+	    // Create vector of size 8192 filled with 0
+        std::vector<int64_t> rotationVector(8191, 0);
+
+        // Rotating by 2^i --> element @ index 2^i = 1
+	    rotationVector[(int)pow(2, i)] = 1;
+
+        rotation_plaintexts.push_back(cryptoContext->MakeCoefPackedPlaintext(rotationVector));
+    }
+
+    return rotation_plaintexts;
+}
+
 /*
  * argv[1] --> number's file name
 */
@@ -29,31 +66,27 @@ int main(int argc, char *argv[]) {
     
     // Header of file contains information about nr of vector and the size of each of them
     int64_t number_vectors, size_vectors, number;
-    std::vector<int64_t> all_numbers;
+    std::vector<int64_t> numbers;
 
     numbers_file >> number_vectors;
     numbers_file >> size_vectors;
-    int64_t plaintext_modulus = 65537;
+      
     int64_t total_elements = size_vectors * number_vectors;
-    int64_t alpha = 81, subtractions_done = 0, pre_processed_value;
-	   // , alpha1 = 8091;
-	   
-    int alphaValue = 1;
+
     // Body of the file contains all the numbers
     while (numbers_file >> number) {
-	    
-	pre_processed_value = number * alphaValue % plaintext_modulus;
-
-        alphaValue = alphaValue * alpha % plaintext_modulus;
-
-        if(pre_processed_value > (plaintext_modulus - 1 ) /2){
-		    pre_processed_value = pre_processed_value - plaintext_modulus;
-	    }
-
-        all_numbers.push_back(pre_processed_value);
+        numbers.push_back(number);
     }
+
+    // Auxiliary Variables for the Pre Processing 
+    int64_t plaintext_modulus = 65537;
+    int64_t alpha = 81, inverse_alpha = 8091;
+	
+    std::vector<int64_t> pre_processed_numbers;
+    pre_processed_numbers = pre_process_numbers(numbers, alpha, plaintext_modulus);
+
     // Due to the optimization we can do log(n) - 1 rotations
-    double number_rotations = ceil(log2(size_vectors));
+    //int64_t number_rotations = (int64_t)ceil(log2(size_vectors));
      TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
@@ -83,19 +116,8 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
     // Generate the rotation plaintexts
-    std::vector<Plaintext> rotation_plaintexts;
-    Plaintext plaintextRot;
-
-    for(int i = 0; i < number_rotations; i++){
-	    // Create vector of size 8192 filled with 0
-        std::vector<int64_t> rotationVector(8191, 0);
-
-        // Rotating by 2^i --> element @ index 2^i = 1
-	    rotationVector[(int)pow(2, i)] = 1;
-
-        rotation_plaintexts.push_back(cryptoContext->MakeCoefPackedPlaintext(rotationVector));
-    }
-
+    //std::vector<Plaintext> rotation_plaintexts = generate_rotation_plaintexts(number_rotations, cryptoContext);
+    //std::cout << rotation_plaintexts << std::endl;
     
     // Print time spent on setup
     TOC(t);
@@ -116,7 +138,7 @@ int main(int argc, char *argv[]) {
         end = size_vectors * (i + 1);
 
         // Encode Plaintext  with coefficient packing and encrypt it into a ciphertext vector
-        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
+        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(pre_processed_numbers.begin() + begin, pre_processed_numbers.begin() + end));
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
 
@@ -129,15 +151,7 @@ int main(int argc, char *argv[]) {
     TIC(t);
 	    
     // Homomorphic Operations 
-    //auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
-   // auto ciphertextRot = ciphertextAdd;
     auto ciphertextAdd = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[0]); 
-    // For each iteration, rotate the vector through multiplication and then add it with the non rotated vector
-   // for(int i = 0; i < number_rotations; i++){
-   //	    ciphertextRot = cryptoContext->EvalMult(ciphertextAdd, rotation_plaintexts[i]);
-     //   ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
-   // }
-
     // Print time spent on homomorphic operations
     TOC(t);
     processingTimes[2] = TOC(t);
@@ -154,9 +168,7 @@ int main(int argc, char *argv[]) {
     // Print time spent on decryption
     TOC(t);
     processingTimes[3] = TOC(t);
-    std::cout << plaintextDecAdd->GetCoefPackedValue() << std::endl; 
     std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
-    std::cout << "Substractions done: " <<  subtractions_done << std::endl;    
    TIC(t);
 
     // Plaintext Operations
