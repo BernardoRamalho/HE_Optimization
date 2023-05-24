@@ -91,7 +91,6 @@ int main(int argc, char *argv[]) {
     numbers_file >> number_vectors;
     numbers_file >> size_vectors;
       
-    int64_t total_elements = size_vectors * number_vectors;
 
     // Body of the file contains all the numbers
     while (numbers_file >> number) {
@@ -104,6 +103,9 @@ int main(int argc, char *argv[]) {
 	
     std::vector<int64_t> pre_processed_numbers;
     pre_processed_numbers = pre_process_numbers(numbers, alpha, plaintext_modulus);
+    
+    std::vector<int64_t> all_ones(8192, 1);
+    std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
 
     // Due to the optimization we can do log(n) - 1 rotations
     //int64_t number_rotations = (int64_t)ceil(log2(size_vectors));
@@ -119,7 +121,6 @@ int main(int argc, char *argv[]) {
     cryptoContext->Enable(KEYSWITCH);
     cryptoContext->Enable(LEVELEDSHE);
     cryptoContext->Enable(ADVANCEDSHE);
-    std::cout << parameters.GetSecretKeyDist() << std::endl;
     // Key Generation
 
     // Initialize Public Key Containers
@@ -150,8 +151,10 @@ int main(int argc, char *argv[]) {
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
 	    
+    Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_ones);
+
     // Homomorphic Operations 
-    auto ciphertextAdd = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[0]); 
+    auto ciphertextAdd = cryptoContext->EvalMult(ciphertexts[0], all_ones_plaintext); 
 
     // Decryption
     Plaintext plaintextDec;
