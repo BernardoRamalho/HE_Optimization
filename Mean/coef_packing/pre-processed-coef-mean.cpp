@@ -141,8 +141,7 @@ int main(int argc, char *argv[]) {
     int64_t plaintext_modulus = 65537;
     int64_t alpha = 81, inverse_alpha = 8091;
 	
-    std::vector<int64_t> pre_processed_numbers;
-    pre_processed_numbers = pre_process_numbers(all_numbers, alpha, plaintext_modulus);
+    std::vector<int64_t> pre_processed_numbers = pre_process_numbers(all_numbers, alpha, plaintext_modulus);
     
     std::vector<int64_t> all_ones(8192, 1);
     std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
@@ -158,7 +157,7 @@ int main(int argc, char *argv[]) {
         end = size_vectors * (i + 1);
 
         // Encode Plaintext  with coefficient packing and encrypt it into a ciphertext vector
-        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(pre_process_numbers.begin() + begin, pre_process_numbers.begin() + end));
+        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(pre_processed_numbers.begin() + begin, pre_processed_numbers.begin() + end));
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
 

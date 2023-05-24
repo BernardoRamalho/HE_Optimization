@@ -132,11 +132,7 @@ int main(int argc, char *argv[]) {
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
-    // Generate the rotation plaintexts
-    //std::vector<Plaintext> rotation_plaintexts = generate_rotation_plaintexts(number_rotations, cryptoContext);
-    //std::cout << rotation_plaintexts << std::endl;
-
-    // Create Plaintexts
+        // Create Plaintexts
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
     Ciphertext<DCRTPoly> processedCipher; 
     int begin, end;
