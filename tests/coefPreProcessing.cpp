@@ -12,15 +12,17 @@
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
-
 using namespace lbcrypto;
 
 std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
     std::vector<int64_t> pre_processed_values;
     int64_t alpha_value = 1, pre_processed_value;
+    unsigned long long mult_value;
 
     for(unsigned int i = 0; i < values.size(); i++){
-        pre_processed_value = values[i] * alpha_value % plaintext_modulus;
+	mult_value = values[i] * alpha_value;
+
+        pre_processed_value = mult_value % plaintext_modulus;
 
         alpha_value = alpha_value * alpha % plaintext_modulus;
 
@@ -36,15 +38,19 @@ std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t al
 
 std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_values, int64_t inverse_alpha, int64_t plaintext_modulus){
     std::vector<int64_t> post_processed_values;
-    int64_t inverse_alpha_value = 1, post_processed_value;
+    unsigned long long inverse_alpha_value = 1;
+    uint64_t post_processed_value;
+    unsigned long long mult_value;
 
     for(unsigned int i = 0; i < pre_processed_values.size(); i++){
-        
+
         if(pre_processed_values[i] < 0){
             pre_processed_values[i] += plaintext_modulus;
         }
 
-        post_processed_value = pre_processed_values[i] * inverse_alpha_value % plaintext_modulus;
+        mult_value = pre_processed_values[i] * inverse_alpha_value;
+
+        post_processed_value = mult_value % plaintext_modulus;
 
         inverse_alpha_value = inverse_alpha_value * inverse_alpha % plaintext_modulus;
 
@@ -98,8 +104,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Auxiliary Variables for the Pre Processing 
-    int64_t plaintext_modulus = 65537;
-    int64_t alpha = 81, inverse_alpha = 8091;
+    int64_t plaintext_modulus = 4295049217;
+    int64_t alpha = 626534755, inverse_alpha = 2398041854;
 	
     std::vector<int64_t> pre_processed_numbers;
     pre_processed_numbers = pre_process_numbers(numbers, alpha, plaintext_modulus);
@@ -107,10 +113,7 @@ int main(int argc, char *argv[]) {
     std::vector<int64_t> all_ones(8192, 1);
     std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
 
-    // Due to the optimization we can do log(n) - 1 rotations
-    //int64_t number_rotations = (int64_t)ceil(log2(size_vectors));
-    
-    // Set CryptoContext
+       // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
     parameters.SetPlaintextModulus(plaintext_modulus);
     parameters.SetMultiplicativeDepth(2);
@@ -156,7 +159,7 @@ int main(int argc, char *argv[]) {
     Plaintext plaintextDec;
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDec);
-
+    std::cout << plaintextDec->GetCoefPackedValue() << std::endl <<std::endl << std::endl;
     std::vector<int64_t> post_processed_values = post_process_numbers(plaintextDec->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
     std::cout << post_processed_values << std::endl;
 }
