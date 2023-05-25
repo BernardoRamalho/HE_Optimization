@@ -199,10 +199,10 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Decryption
-    Plaintext plaintextDecAdd;
+    Plaintext plaintextDec;
  
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDecAdd);
-    plaintextDecAdd->SetLength(size_vectors);
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDec);
+    plaintextDec->SetLength(size_vectors);
 
     // Print time spent on decryption
     TOC(t);
@@ -213,7 +213,8 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    double variance_sum = plaintextDecAdd->GetCoefPackedValue()[total_elements - 1];
+    std::vector<int64_t> post_processed_values = post_process_numbers(plaintextDec->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
+    double variance_sum = post_processed_values[total_elements - 1];
     double variance = variance_sum / pow(total_elements, 3); 
    
     // Print time spent on plaintext operations
