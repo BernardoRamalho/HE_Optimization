@@ -214,5 +214,5 @@ int main(int argc, char *argv[]) {
     //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
     //std::cout << "Mean: " << mean << std::endl;
 
-   // printIntoCSV(processingTimes, total_time, mean);
+    printIntoCSV(processingTimes, total_time, mean);
 }

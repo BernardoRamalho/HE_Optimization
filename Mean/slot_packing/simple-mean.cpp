@@ -158,6 +158,7 @@ int main(int argc, char *argv[]) {
     //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
     //std::cout << "Mean: " << mean << std::endl;
 
+    std::cout << "Sup bestie" << std::endl;
     printIntoCSV(processingTimes, total_time, mean);
 
     return 0;
