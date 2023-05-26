@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[0] = TOC(t);
     
-    std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
+    //std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
 
     TIC(t);
 
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[1] = TOC(t);
  
-    std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
+    //std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
     
     TIC(t);
 	    
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[2] = TOC(t);
  
-    std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
+    //std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
     
     TIC(t);
 
@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[3] = TOC(t);
  
-    std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
+    //std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
 
     // Inner Product value will be in the first element of the plaintext
     int64_t inner_product = plaintextDecAdd->GetPackedValue()[0];
@@ -164,8 +164,8 @@ int main(int argc, char *argv[]) {
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
-    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    std::cout << "Inner Product: " << inner_product << std::endl;
+    //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    //std::cout << "Inner Product: " << inner_product << std::endl;
 
     printIntoCSV(processingTimes, total_time, inner_product);
 

@@ -17,6 +17,25 @@ Ciphertext<DCRTPoly> calculateSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair
     return ciphertextAdd;
 }
 
+void printIntoCSV(std::vector<double> processingTimes, double total_time, double variance){
+    // Open the file
+    std::string filePath;
+
+    std::ofstream varianceCSV("timeCSVs/variance.csv", std::ios_base::app);
+    std::cout.rdbuf(varianceCSV.rdbuf()); //redirect std::cout to out.txt!
+    
+    std::cout << "\nsum-squares-slot, ";
+
+    for(unsigned int i = 0; i < processingTimes.size(); i++){
+        std::cout << processingTimes[i] << ", ";
+    }
+    std::cout << total_time << ", ";
+    
+    std::cout << variance << std::endl;
+ 
+    varianceCSV.close();
+}
+
 /*
  * argv[1] --> number's file name
 */
@@ -87,7 +106,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[0] = TOC(t);
     
-    std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
+    //std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
 
     TIC(t);
 
@@ -110,7 +129,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[1] = TOC(t);
  
-    std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
+    //std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
     
     TIC(t);
 	    
@@ -121,7 +140,7 @@ int main(int argc, char *argv[]) {
 
     std::vector<int64_t> totalVector(size_vectors, total_elements);
     Plaintext plaintextTotalElems = cryptoContext->MakePackedPlaintext(totalVector);
-    std::cout << "Lenght of array: " << totalVector.size();
+    //std::cout << "Lenght of array: " << totalVector.size();
 
     std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
 
@@ -152,7 +171,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[2] = TOC(t);
  
-    std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
+    //std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
     
     TIC(t);
 
@@ -165,7 +184,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[3] = TOC(t);
  
-    std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
+    //std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
     
     TIC(t);
 
@@ -176,11 +195,14 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[4] = TOC(t);
  
-    std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
+    //std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
     
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
-    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    std::cout << "Variance: " << variance << std::endl;
+    //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    //std::cout << "Variance: " << variance << std::endl;
+
+    printIntoCSV(processingTimes, total_time, variance);
+
 }
