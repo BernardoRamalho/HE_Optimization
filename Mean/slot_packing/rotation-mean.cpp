@@ -19,16 +19,15 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     std::string filePath;
 
     std::ofstream meanCSV("timeCSVs/mean.csv", std::ios_base::app);
-    std::cout.rdbuf(meanCSV.rdbuf()); //redirect std::cout to out.txt!
     
-    std::cout << "\nrot, ";
+    meanCSV << "rot-slot, ";
 
     for(unsigned int i = 0; i < processingTimes.size(); i++){
-        std::cout << processingTimes[i] << ", ";
+        meanCSV << processingTimes[i] << ", ";
     }
-    std::cout << total_time << ", ";
+    meanCSV << total_time << ", ";
     
-    std::cout << mean << std::endl;
+    meanCSV << mean << std::endl;
  
     meanCSV.close();
 }

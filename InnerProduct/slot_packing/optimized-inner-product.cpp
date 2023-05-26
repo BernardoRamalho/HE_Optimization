@@ -21,16 +21,15 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     std::string filePath;
 
     std::ofstream innerProductCSV("timeCSVs/innerProduct.csv", std::ios_base::app);
-    std::cout.rdbuf(innerProductCSV.rdbuf()); //redirect std::cout to out.txt!
     
-    std::cout << "\noptimized, ";
+    innerProductCSV<< "optimized-slot, ";
 
     for(unsigned int i = 0; i < processingTimes.size(); i++){
-        std::cout << processingTimes[i] << ", ";
+        innerProductCSV<< processingTimes[i] << ", ";
     }
-    std::cout << total_time << ", ";
+    innerProductCSV<< total_time << ", ";
     
-    std::cout << innerProduct << std::endl;
+    innerProductCSV<< innerProduct << std::endl;
  
     innerProductCSV.close();
 }

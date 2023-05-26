@@ -20,7 +20,6 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     std::string filePath;
 
     std::ofstream innerProductCSV("timeCSVs/innerProduct.csv", std::ios_base::app);
-    std::cout.rdbuf(innerProductCSV.rdbuf()); //redirect std::cout to out.txt!
     
     std::cout << "\nsimple, ";
 

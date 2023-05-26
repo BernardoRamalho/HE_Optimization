@@ -22,16 +22,15 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     std::string filePath;
 
     std::ofstream varianceCSV("timeCSVs/variance.csv", std::ios_base::app);
-    std::cout.rdbuf(varianceCSV.rdbuf()); //redirect std::cout to out.txt!
     
-    std::cout << "\nsum-squares-slot, ";
+    varianceCSV << "sum-squares-slot, ";
 
     for(unsigned int i = 0; i < processingTimes.size(); i++){
-        std::cout << processingTimes[i] << ", ";
+        varianceCSV << processingTimes[i] << ", ";
     }
-    std::cout << total_time << ", ";
+    varianceCSV << total_time << ", ";
     
-    std::cout << variance << std::endl;
+    varianceCSV << variance << std::endl;
  
     varianceCSV.close();
 }
