@@ -12,7 +12,7 @@
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
-
+ 
 using namespace lbcrypto;
 void printIntoCSV(std::vector<double> processingTimes, double total_time, double mean){
     // Open the file
@@ -45,7 +45,6 @@ int main(int argc, char *argv[]) {
              << argv[1] << "'" << std::endl;
         return EXIT_FAILURE;
     }
-
     // Header of file contains information about nr of vector and the size of each of them
     int64_t number_vectors, size_vectors, number;
     std::vector<int64_t> all_numbers;
