@@ -22,7 +22,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
 
     std::ofstream innerProductCSV("timeCSVs/innerProduct.csv", std::ios_base::app);
     
-    innerProductCSV << "coef, ";
+    innerProductCSV << "coef-setup-reverse, ";
 
     for(unsigned int i = 0; i < processingTimes.size(); i++){
         innerProductCSV << processingTimes[i] << ", ";
@@ -88,7 +88,6 @@ int main(int argc, char *argv[]) {
     
     // By reversing the second vector, we don't need to do rotation
     // Due to how polynomial multiplication works, the inner product value will be at the last index of the plaintext after the multiplication
-    reverse(vectors[1].begin(), vectors[1].end());
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0};
@@ -119,6 +118,7 @@ int main(int argc, char *argv[]) {
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
 
+    reverse(vectors[1].begin(), vectors[1].end());
     // Print time spent on setup
     TOC(t);
     processingTimes[0] = TOC(t);

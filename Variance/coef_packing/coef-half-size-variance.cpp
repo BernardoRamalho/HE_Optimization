@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
     
     TIC(t);
-
+    std::cout << "Value before dividing: " << plaintextResult->GetCoefPackedValue()[size_vectors - 1] << std::endl;
     // Plaintext Operations
     double variance = plaintextResult->GetCoefPackedValue()[size_vectors - 1] / pow(total_elements, 2); 
 
