@@ -59,7 +59,6 @@ int main(int argc, char *argv[]) {
     while (numbers_file >> number) {
         all_numbers.push_back(number);
     }
-
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
@@ -95,9 +94,8 @@ int main(int argc, char *argv[]) {
     for(int i = 0; i < size_vectors; i++){
 	    // Create vector of size 8192 filled with 0
         std::vector<int64_t> rotationVector(8191, 0);
-
-        // Rotating by 2^i --> element @ index 2^i = 1
-	    rotationVector[(int)pow(2, i)] = 1;
+        // Rotating by i --> element @ index i = 1
+	    rotationVector[i] = 1;
 
         rotation_plaintexts.push_back(cryptoContext->MakeCoefPackedPlaintext(rotationVector));
     }
@@ -107,7 +105,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[0] = TOC(t);
     
-    //std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
+   //std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
 
     TIC(t);
 
@@ -115,8 +113,7 @@ int main(int argc, char *argv[]) {
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
     
     int begin, end;
-    
-    for(int i = 0; i < size_vectors; i++){
+    for(int i = 0; i < number_vectors; i++){
         // Calculate beginning and end of plaintext values
         begin = i * size_vectors;
         end = size_vectors * (i + 1);
@@ -130,7 +127,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[1] = TOC(t);
  
-    //std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
+  // std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
     
     TIC(t);
 	    
@@ -139,7 +136,7 @@ int main(int argc, char *argv[]) {
     auto ciphertextRot = ciphertextAdd;
     
     // For each iteration, rotate the vector through multiplication and then add it with the non rotated vector
-    for(int i = 0; i < number_rotations; i++){
+    for(int i = 0; i < size_vectors; i++){
    	    ciphertextRot = cryptoContext->EvalMult(ciphertextAdd, rotation_plaintexts[i]);
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
@@ -148,7 +145,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[2] = TOC(t);
  
-    //std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
+   //std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
     
     TIC(t);
 
@@ -166,9 +163,7 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    int numberValues = plaintextDecAdd->GetCoefPackedValue().size();
-    
-    double mean_sum = plaintextDecAdd->GetCoefPackedValue()[0]*-1 + plaintextDecAdd->GetCoefPackedValue()[numberValues - 1];
+    double mean_sum = plaintextDecAdd->GetCoefPackedValue()[0];
    
     double mean = mean_sum / total_elements; 
 
