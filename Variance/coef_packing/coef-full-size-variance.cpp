@@ -109,12 +109,10 @@ int main(int argc, char *argv[]) {
     
     std::vector<int64_t> all_ones(8192, 1);
     std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
-    Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_ones);
 
     std::vector<int64_t> multiply_by(8192, 0);
-    multiply_by[0] = total_elements * total_elements;
+    multiply_by[0] = total_elements ;
     std::vector<int64_t> pre_processed_multiply_by = pre_process_numbers(multiply_by, alpha, plaintext_modulus);
-    Plaintext multiply_by_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_multiply_by);
 
 
     // Set CryptoContext
@@ -172,6 +170,9 @@ int main(int argc, char *argv[]) {
 
     }
 
+    Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_ones);
+    Plaintext multiply_by_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_multiply_by);
+
     // Print time spent on encryption
     TOC(t);
     processingTimes[1] = TOC(t);
@@ -199,11 +200,12 @@ int main(int argc, char *argv[]) {
     // Multiplying both vectors together will calculate the Inner Product value on the last index of the plaintext
     Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalMult(ciphertexts[0], inverted_ciphertexts[0]);
 
-    ciphertextInnerProduct = cryptoContext->EvalMult(ciphertextInnerProduct, multiply_by_plaintext);
 // Decrypt to check the values
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &inter_plaintext);
     inter_results = post_process_numbers(inter_plaintext->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
     std::cout << "Inner Product x Total_Elems^2\n" << inter_results << std::endl;
+
+    ciphertextInnerProduct = cryptoContext->EvalMult(ciphertextInnerProduct, multiply_by_plaintext);
 // Subtract the mean from the inner product
     auto ciphertextResult = cryptoContext->EvalSub(ciphertextInnerProduct, ciphertextSquareSum);
 
