@@ -188,6 +188,7 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
+    std::cout << "Sum: " << plaintextDecAdd->GetPackedValue()[0];
     double variance = plaintextDecAdd->GetPackedValue()[0] / pow(total_elements, 3); 
    
     // Print time spent on plaintext operations
@@ -200,7 +201,7 @@ int main(int argc, char *argv[]) {
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
     //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    //std::cout << "Variance: " << variance << std::endl;
+    std::cout << "Variance: " << variance << std::endl;
 
     printIntoCSV(processingTimes, total_time, variance);
 

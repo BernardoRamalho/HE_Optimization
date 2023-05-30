@@ -78,8 +78,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Auxiliary Variables for the Pre Processing 
-    int64_t plaintext_modulus = 4295049217;
-    int64_t alpha = 626534755, inverse_alpha = 2398041854;
+    int64_t plaintext_modulus = 7000000462849;
+    int64_t alpha = 3398481477433, inverse_alpha = 2279133059052;
 	
     std::vector<int64_t> pre_processed_numbers;
     pre_processed_numbers = pre_process_numbers(numbers, alpha, plaintext_modulus);
@@ -136,12 +136,12 @@ int main(int argc, char *argv[]) {
         end = size_vectors * (i + 1);
 
         // Create vectors
-        std::vector<int64_t> numbers(numbers.begin() + begin, numbers.begin() + end);
-        std::vector<int64_t> inverted_numbers = numbers;
+        std::vector<int64_t> values(pre_processed_numbers.begin() + begin, pre_processed_numbers.begin() + end);
+        std::vector<int64_t> inverted_numbers = values;
         reverse(inverted_numbers.begin(), inverted_numbers.end());
 
         // Encode Plaintext with slot packing and encrypt it into a ciphertext vector
-        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(numbers);
+        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(values);
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
        
        	Plaintext inverted_plaintext = cryptoContext->MakeCoefPackedPlaintext(inverted_numbers);
@@ -162,21 +162,17 @@ int main(int argc, char *argv[]) {
     // Homomorphic Operations 
 
     // Calculate the Sum
-    auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts)
+    auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
     auto ciphertextSum = cryptoContext->EvalMult(ciphertextAdd, all_ones_plaintext); 
      
     // Create plaintext with n value in the first index
-    Plaintext plaintextTotalElements = cryptoContext->MakeCoefPackedPlaintext([total_elements]);
-    std::cout << plaintextTotalElements->GetCoefPackedValue() << std::cout;
+    Plaintext plaintextTotalElements = cryptoContext->MakeCoefPackedPlaintext({total_elements});
 
     auto ciphertextTest = cryptoContext->EvalMult(ciphertexts[0], plaintextTotalElements);
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextTest, &plaintextTotalElements)
-    std::cout << plaintextTotalElements->GetCoefPackedValue() << std::cout;
    
     // Calculate  (xi - mean)^2
     std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
 
-    Plaintext plaintextDec;
  
     for(int i = 0; i < (int)ciphertexts.size(); i++){
         // Calculate n*xi - sum(x)

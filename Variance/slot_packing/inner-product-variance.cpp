@@ -149,12 +149,15 @@ int main(int argc, char *argv[]) {
 	    
     // Homomorphic Operations 
 
+    Plaintext plaintextDec;
     // Calculate the Sum
     Ciphertext<DCRTPoly> sumCiphertext = calculateSquareSum(cryptoContext, keyPair, ciphertexts, number_rotations);
-    
+    cryptoContext->Decrypt(keyPair.secretKey, sumCiphertext, &plaintextDec);
+    std::cout << "Sum: " << plaintextDec->GetPackedValue()[0] << std::endl;
     // Calculate the Inner Product
     Ciphertext<DCRTPoly> innerProductCiphertext = calculateInnerProduct(cryptoContext, keyPair, ciphertexts, number_rotations);
-
+cryptoContext->Decrypt(keyPair.secretKey, sumCiphertext, &plaintextDec);
+    std::cout << "InnerProd: " << plaintextDec->GetPackedValue()[0] << std::endl;
     // Create Plaintext to multiply with inner product
     Plaintext nPlaintext = cryptoContext->MakePackedPlaintext({total_elements});
     innerProductCiphertext = cryptoContext->EvalMult(innerProductCiphertext, nPlaintext);
@@ -197,8 +200,9 @@ int main(int argc, char *argv[]) {
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
     //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    //std::cout << "Variance: " << variance << std::endl;
+    std::cout << "Variance: " << variance << std::endl;
 
+    std::cout << "Sub: " << plaintextDecAdd->GetPackedValue()[0] << std::endl;
     printIntoCSV(processingTimes, total_time, variance);
     
 }
