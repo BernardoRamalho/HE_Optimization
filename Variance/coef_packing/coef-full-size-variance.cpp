@@ -4,25 +4,43 @@
 
 using namespace lbcrypto;
 
-Ciphertext<DCRTPoly> calculateSquareSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, std::vector<Plaintext> rotation_plaintexts,int64_t total_elements, int64_t number_rotations, int64_t size_vectors){
-    std::vector<Ciphertext<DCRTPoly>> mult_ciphertexts;
+std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, std::vector<int64_t> alpha_values, int64_t plaintext_modulus){
+    std::vector<int64_t> pre_processed_values;
+    int64_t pre_processed_value;
 
-   auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
-   
-    auto ciphertextRot = ciphertextAdd;
+    for(unsigned int i = 0; i < values.size(); i++){
+        pre_processed_value = values[i] * alpha_values[i] % plaintext_modulus;
 
-    // For each iteration, rotate the vector through multiplication and then add it with the non rotated vector
-    for(int i = 0; i < number_rotations ; i++){
-   	    ciphertextRot = cryptoContext->EvalMult(ciphertextAdd, rotation_plaintexts[i]);
-        ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
+        if(pre_processed_value > (plaintext_modulus - 1 ) /2){
+		    pre_processed_value = pre_processed_value - plaintext_modulus;
+	    }
+
+        pre_processed_values.push_back(pre_processed_value);
     }
- Plaintext plaintextResult;
- 
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextResult);
-    std::cout << plaintextResult->GetCoefPackedValue() << std::endl;
-    
-    return ciphertextAdd;
+
+    return pre_processed_values;
 }
+
+std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_values, int64_t inverse_alpha, int64_t plaintext_modulus){
+    std::vector<int64_t> post_processed_values;
+    int64_t inverse_alpha_value = 1, post_processed_value;
+
+    for(unsigned int i = 0; i < pre_processed_values.size(); i++){
+        
+        if(pre_processed_values[i] < 0){
+            pre_processed_values[i] += plaintext_modulus;
+        }
+
+        post_processed_value = pre_processed_values[i] * inverse_alpha_value % plaintext_modulus;
+
+        inverse_alpha_value = inverse_alpha_value * inverse_alpha % plaintext_modulus;
+
+        post_processed_values.push_back(post_processed_value);
+    }
+
+    return post_processed_values;
+}
+
 
 /*
  * argv[1] --> number's file name
@@ -54,17 +72,34 @@ int main(int argc, char *argv[]) {
 
     reverse(inverted_all_number_N.begin(), inverted_all_number_N.end());
 
-    // Due to the optimization we can do log(n) rotations
-    double number_rotations = ceil(log2(size_vectors));
-
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
 
+    // Auxiliary Variables for the Pre Processing 
+    int64_t plaintext_modulus = 4295049217;
+    int64_t alpha = 626534755, inverse_alpha = 2398041854;
+	
+    std::vector<int64_t> pre_processed_numbers;
+    pre_processed_numbers = pre_process_numbers(all_number_N, alpha, plaintext_modulus);
+
+    std::vector<int64_t> pre_processed_inverted_numbers;
+    pre_processed_inverted_numbers = pre_process_numbers(inverted_all_number_N, alpha, plaintext_modulus);
+    
+    std::vector<int64_t> all_ones(8192, 1);
+    std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
+    Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_ones);
+
+    std::vector<int64_t> multiply_by(8192, 0);
+    multiply_by[0] = total_elements * total_elements;
+    std::vector<int64_t> pre_processed_multiply_by = pre_process_numbers(multiply_by, alpha, plaintext_modulus);
+    Plaintext multiply_by_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_multiply_by);
+
+
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(7000000462849);
+    parameters.SetPlaintextModulus(plaintext_modulus);
     parameters.SetMultiplicativeDepth(2);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
@@ -84,20 +119,6 @@ int main(int argc, char *argv[]) {
 
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
-    
-    // Generate the rotation plaintexts
-    std::vector<Plaintext> rotation_plaintexts;
-    Plaintext plaintextRot;
-
-    for(int i = 0; i < number_rotations; i++){
-	    // Create vector of size 8192 filled with 0
-        std::vector<int64_t> rotationVector(8191, 0);
-
-        // Rotating by 2^i --> element @ index 2^i = 1
-	    rotationVector[(int)pow(2, i)] = 1;
-
-        rotation_plaintexts.push_back(cryptoContext->MakeCoefPackedPlaintext(rotationVector));
-    }    
     
     // Print time spent on setup
     TOC(t);
@@ -119,10 +140,10 @@ int main(int argc, char *argv[]) {
         end = size_vectors * (i + 1);
 
         // Create vectors
-        std::vector<int64_t> numbers(all_number_N.begin() + begin, all_number_N.begin() + end);
-        std::vector<int64_t> inverted_numbers(inverted_all_number_N.begin() + begin, inverted_all_number_N.begin() + end);;
+        std::vector<int64_t> numbers(pre_processed_numbers.begin() + begin, pre_processed_numbers.begin() + end);
+        std::vector<int64_t> inverted_numbers(pre_processed_inverted_numbers.begin() + begin, pre_processed_inverted_numbers.begin() + end);;
 
-        // Encode Plaintext with slot packing and encrypt it into a ciphertext vector
+        // Encode Plaintext with coef packing and encrypt it into a ciphertext vector
         Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(numbers);
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
        
@@ -131,23 +152,6 @@ int main(int argc, char *argv[]) {
 
     }
 
-    // Plaintexts to calculate the square mean with one multiplication
-    std::vector<Ciphertext<DCRTPoly>> half_ciphertexts;
-    int64_t half_size = size_vectors / 2;
-
-    for(int i = 0; i < number_vectors * 2; i++){
-        // Calculate beginning and end of plaintext values
-        begin = i * half_size;
-        end = half_size * (i + 1);
-
-        // Create vectors
-        std::vector<int64_t> numbers(all_number_N.begin() + begin, all_number_N.begin() + end);
-
-        // Encode Plaintext with slot packing and encrypt it into a ciphertext vector
-        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(numbers);
-        half_ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
-    }
-    
     // Print time spent on encryption
     TOC(t);
     processingTimes[1] = TOC(t);
@@ -159,18 +163,20 @@ int main(int argc, char *argv[]) {
     // Homomorphic Operations 
 
     // Calculate the Square Mean
-    auto negSquareSum = calculateSquareSum(cryptoContext, keyPair, ciphertexts, rotation_plaintexts,total_elements, number_rotations, size_vectors);
+    auto ciphertextSquareSum = cryptoContext->EvalAddMany(ciphertexts);
+
+    ciphertextSquareSum = cryptoContext->EvalMult(ciphertextSquareSum, all_ones_plaintext); // Get Sum in all Indexes
     
+    ciphertextSquareSum = cryptoContext->EvalSquare(ciphertextSquareSum); // Get square sum * total_elements in all indexes
+
     // Calculate the Inner Product
     // Multiplying both vectors together will calculate the Inner Product value on the last index of the plaintext
     Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalMult(ciphertexts[0], inverted_ciphertexts[0]);
 
-    std::vector<int64_t> totalVector(size_vectors, total_elements);
-    Plaintext plaintextTotalElems = cryptoContext->MakeCoefPackedPlaintext(totalVector);
+    ciphertextInnerProduct = cryptoContext->EvalMult(ciphertextInnerProduct, multiply_by_plaintext);
 
-    ciphertextInnerProduct = cryptoContext->EvalMult(ciphertextInnerProduct, plaintextTotalElems);
-        // Subtract the mean from the inner product
-    auto ciphertextResult = cryptoContext->EvalSub(ciphertextInnerProduct, negSquareSum);
+// Subtract the mean from the inner product
+    auto ciphertextResult = cryptoContext->EvalSub(ciphertextInnerProduct, ciphertextSquareSum);
 
     // Print time spent on homomorphic operations
     TOC(t);
@@ -195,7 +201,7 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    double variance = plaintextResult->GetCoefPackedValue()[size_vectors - 1] / pow(total_elements, 2); 
+    double variance = plaintextResult->GetCoefPackedValue()[size_vectors - 1] / pow(total_elements, 3); 
 
     // Print time spent on plaintext operations
     TOC(t);
