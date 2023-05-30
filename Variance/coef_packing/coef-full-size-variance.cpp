@@ -4,6 +4,64 @@
 
 using namespace lbcrypto;
 
+void printIntoCSV(std::vector<double> processingTimes, double total_time, double mean){
+    // Open the file
+    std::string filePath;
+
+    std::ofstream meanCSV("timeCSVs/mean.csv", std::ios_base::app);
+    
+    meanCSV << "pre-proc-coef, ";
+
+    for(unsigned int i = 0; i < processingTimes.size(); i++){
+        meanCSV << processingTimes[i] << ", ";
+    }
+    meanCSV << total_time << ", ";
+    
+    meanCSV << mean << std::endl;
+ 
+    meanCSV.close();
+}
+
+std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
+    std::vector<int64_t> pre_processed_values;
+    int64_t alpha_value = 1, pre_processed_value;
+
+    for(unsigned int i = 0; i < values.size(); i++){
+        pre_processed_value = values[i] * alpha_value % plaintext_modulus;
+
+        alpha_value = alpha_value * alpha % plaintext_modulus;
+
+        if(pre_processed_value > (plaintext_modulus - 1 ) /2){
+		    pre_processed_value = pre_processed_value - plaintext_modulus;
+	    }
+
+        pre_processed_values.push_back(pre_processed_value);
+    }
+
+    return pre_processed_values;
+}
+
+std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_values, int64_t inverse_alpha, int64_t plaintext_modulus){
+    std::vector<int64_t> post_processed_values;
+    int64_t inverse_alpha_value = 1, post_processed_value;
+
+    for(unsigned int i = 0; i < pre_processed_values.size(); i++){
+        
+        if(pre_processed_values[i] < 0){
+            pre_processed_values[i] += plaintext_modulus;
+        }
+
+        post_processed_value = pre_processed_values[i] * inverse_alpha_value % plaintext_modulus;
+
+        inverse_alpha_value = inverse_alpha_value * inverse_alpha % plaintext_modulus;
+
+        post_processed_values.push_back(post_processed_value);
+    }
+
+    return post_processed_values;
+}
+
+
 /*
  * argv[1] --> number's file name
 */
@@ -39,12 +97,24 @@ int main(int argc, char *argv[]) {
 
     TIC(t);
 
+    // Auxiliary Variables for the Pre Processing 
     int64_t plaintext_modulus = 4295049217;
+    int64_t alpha = 626534755, inverse_alpha = 2398041854;
+	
+    std::vector<int64_t> pre_processed_numbers;
+    pre_processed_numbers = pre_process_numbers(all_number_N, alpha, plaintext_modulus);
 
+    std::vector<int64_t> pre_processed_inverted_numbers;
+    pre_processed_inverted_numbers = pre_process_numbers(inverted_all_number_N, alpha, plaintext_modulus);
+    
     std::vector<int64_t> all_ones(8192, 1);
+    std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
+    Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_ones);
 
     std::vector<int64_t> multiply_by(8192, 0);
     multiply_by[0] = total_elements * total_elements;
+    std::vector<int64_t> pre_processed_multiply_by = pre_process_numbers(multiply_by, alpha, plaintext_modulus);
+    Plaintext multiply_by_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_multiply_by);
 
 
     // Set CryptoContext
@@ -90,8 +160,8 @@ int main(int argc, char *argv[]) {
         end = size_vectors * (i + 1);
 
         // Create vectors
-        std::vector<int64_t> numbers(all_number_N.begin() + begin, all_number_N.begin() + end);
-        std::vector<int64_t> inverted_numbers(inverted_all_number_N.begin() + begin, inverted_all_number_N.begin() + end);;
+        std::vector<int64_t> numbers(pre_processed_numbers.begin() + begin, pre_processed_numbers.begin() + end);
+        std::vector<int64_t> inverted_numbers(pre_processed_inverted_numbers.begin() + begin, pre_processed_inverted_numbers.begin() + end);;
 
         // Encode Plaintext with coef packing and encrypt it into a ciphertext vector
         Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(numbers);
@@ -101,8 +171,6 @@ int main(int argc, char *argv[]) {
         inverted_ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, inverted_plaintext));
 
     }
-    Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(all_ones);
-    Plaintext multiply_by_plaintext = cryptoContext->MakeCoefPackedPlaintext(multiply_by);
 
     // Print time spent on encryption
     TOC(t);
@@ -113,28 +181,29 @@ int main(int argc, char *argv[]) {
     TIC(t);
 	    
     // Homomorphic Operations 
-    Plaintext plaintextDec;
+    Plaintext inter_plaintext;
 
     // Calculate the Square Mean
     auto ciphertextSquareSum = cryptoContext->EvalAddMany(ciphertexts);
 
     ciphertextSquareSum = cryptoContext->EvalMult(ciphertextSquareSum, all_ones_plaintext); // Get Sum in all Indexes
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextSquareSum, &plaintextDec);
-    std::cout << "Sum:\n" << plaintextDec->GetCoefPackedValue() << std::endl;
+    
+    ciphertextSquareSum = cryptoContext->EvalSquare(ciphertextSquareSum); // Get square sum * sum
 
-    ciphertextSquareSum = cryptoContext->EvalSquare(ciphertextSquareSum); // Get square sum * total_elements in all indexes
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextSquareSum, &plaintextDec);
-    std::cout << "Square:\n" << plaintextDec->GetCoefPackedValue() << std::endl;
+    // Decrypt to check the values
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextSquareSum, &inter_plaintext);
+    std::vector<int64_t> inter_results = post_process_numbers(inter_plaintext->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
+    std::cout << "Square Sum x Total_Elems\n" << inter_results << std::endl; 
 
     // Calculate the Inner Product
     // Multiplying both vectors together will calculate the Inner Product value on the last index of the plaintext
     Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalMult(ciphertexts[0], inverted_ciphertexts[0]);
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &plaintextDec);
-    std::cout << "Inner:\n" << plaintextDec->GetCoefPackedValue() << std::endl;
 
     ciphertextInnerProduct = cryptoContext->EvalMult(ciphertextInnerProduct, multiply_by_plaintext);
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &plaintextDec);
-    std::cout << "n^2 * Inner:\n" << plaintextDec->GetCoefPackedValue() << std::endl;
+// Decrypt to check the values
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &inter_plaintext);
+    inter_results = post_process_numbers(inter_plaintext->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
+    std::cout << "Inner Product x Total_Elems^2\n" << inter_results << std::endl;
 // Subtract the mean from the inner product
     auto ciphertextResult = cryptoContext->EvalSub(ciphertextInnerProduct, ciphertextSquareSum);
 
@@ -150,7 +219,7 @@ int main(int argc, char *argv[]) {
     Plaintext plaintextResult;
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextResult);
-    std::cout << "Result:\n" << plaintextResult->GetCoefPackedValue() << std::endl;
+
     // Print time spent on decryption
     TOC(t);
     processingTimes[3] = TOC(t);
@@ -160,7 +229,9 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    double variance = plaintextResult->GetCoefPackedValue()[size_vectors - 1] / pow(total_elements, 3); 
+    std::vector<int64_t> results = post_process_numbers(plaintextResult->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
+    std::cout << "Results\n" << results << std::endl;
+    double variance = results[size_vectors - 1] / pow(total_elements, 2); 
 
     // Print time spent on plaintext operations
     TOC(t);
