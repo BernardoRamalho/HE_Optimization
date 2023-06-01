@@ -152,13 +152,11 @@ int main(int argc, char *argv[]) {
     Plaintext plaintextDec;
     // Calculate the Sum
     Ciphertext<DCRTPoly> sumCiphertext = calculateSquareSum(cryptoContext, keyPair, ciphertexts, number_rotations);
-    cryptoContext->Decrypt(keyPair.secretKey, sumCiphertext, &plaintextDec);
-    std::cout << "Sum: " << plaintextDec->GetPackedValue()[0] << std::endl;
-    // Calculate the Inner Product
+    
+     // Calculate the Inner Product
     Ciphertext<DCRTPoly> innerProductCiphertext = calculateInnerProduct(cryptoContext, keyPair, ciphertexts, number_rotations);
-cryptoContext->Decrypt(keyPair.secretKey, sumCiphertext, &plaintextDec);
-    std::cout << "InnerProd: " << plaintextDec->GetPackedValue()[0] << std::endl;
-    // Create Plaintext to multiply with inner product
+    
+   // Create Plaintext to multiply with inner product
     Plaintext nPlaintext = cryptoContext->MakePackedPlaintext({total_elements});
     innerProductCiphertext = cryptoContext->EvalMult(innerProductCiphertext, nPlaintext);
 

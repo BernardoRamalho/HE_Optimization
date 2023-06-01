@@ -188,7 +188,6 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    std::cout << "Sum: " << plaintextDecAdd->GetPackedValue()[0];
     double variance = plaintextDecAdd->GetPackedValue()[0] / pow(total_elements, 3); 
    
     // Print time spent on plaintext operations

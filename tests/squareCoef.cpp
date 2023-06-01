@@ -12,7 +12,7 @@
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
-
+#include <cstdlib>
 using namespace lbcrypto;
 
 std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
@@ -88,21 +88,28 @@ int main(int argc, char *argv[]) {
     // Auxiliary Variables for the Pre Processing 
     int64_t alpha = 81, inverse_alpha = 8091;
 	
-    std::vector<int64_t> all_numbers(8192, 1);
     std::vector<int64_t> multiply_by(8192, 0);
+    std::vector<int64_t> all_numbers(8192, 0);
+    std::vector<int64_t> all_ones(8192, 1);
     multiply_by[0] = 3;
-   
+    
+   for(int i = 0; i < atoi(argv[1]); i++){
+	   all_numbers[i] = 1;
+   }
 
     std::vector<int64_t> pre_processed_numbers = pre_process_numbers(all_numbers, alpha, plaintext_modulus);
     std::vector<int64_t> pre_processed_multiply_by = pre_process_numbers(multiply_by, alpha, plaintext_modulus);
+    std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
 
     Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_numbers);
     Plaintext plaintextMultiply = cryptoContext->MakeCoefPackedPlaintext(pre_processed_multiply_by);
+    Plaintext plaintextAllOnes = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_ones);
 
     //Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(all_numbers);
     auto elementsCipher = cryptoContext->Encrypt(keyPair.publicKey, plaintext);
-    auto ciphertextAdd = cryptoContext->EvalMult(elementsCipher, plaintextMultiply);
-
+    auto ciphertextAdd = cryptoContext->EvalMult(elementsCipher, plaintextAllOnes);
+    //ciphertextAdd = cryptoContext->EvalMult(ciphertextAdd, plaintextMultiply);
+    ciphertextAdd = cryptoContext->EvalMult(ciphertextAdd, ciphertextAdd);
     // Decryption
     Plaintext plaintextDec;
  
