@@ -200,9 +200,9 @@ cryptoContext->Decrypt(keyPair.secretKey, sumCiphertext, &plaintextDec);
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
     //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    std::cout << "Variance: " << variance << std::endl;
+    //std::cout << "Variance: " << variance << std::endl;
 
-    std::cout << "Sub: " << plaintextDecAdd->GetPackedValue()[0] << std::endl;
+    //std::cout << "Sub: " << plaintextDecAdd->GetPackedValue()[0] << std::endl;
     printIntoCSV(processingTimes, total_time, variance);
     
 }
