@@ -19,7 +19,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream meanCSV("timeCSVs/mean.csv", std::ios_base::app);
+    std::ofstream meanCSV("timeCSVs/1000mean.csv", std::ios_base::app);
     
     meanCSV << "pre-proc-coef, ";
 

@@ -46,17 +46,15 @@ std::vector<int64_t> generate_alpha_values(int64_t alpha, int64_t plaintext_modu
     return alpha_values;
 }
 
-std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
+std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, std::vector<int64_t> alphas, int64_t plaintext_modulus){
     std::vector<int64_t> pre_processed_values;
-    int64_t alpha_value = 1, pre_processed_value;
+    int64_t pre_processed_value;
     unsigned long long mult_value;
 
     for(unsigned int i = 0; i < values.size(); i++){
-	mult_value = values[i] * alpha_value;
+	    mult_value = values[i] * alphas[i];
 
         pre_processed_value = mult_value % plaintext_modulus;
-
-        alpha_value = alpha_value * alpha % plaintext_modulus;
 
         if(pre_processed_value > (plaintext_modulus - 1 ) /2){
 		    pre_processed_value = pre_processed_value - plaintext_modulus;
