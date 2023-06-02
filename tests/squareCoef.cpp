@@ -14,13 +14,15 @@
 #include <fstream>
 #include <cstdlib>
 using namespace lbcrypto;
-
 std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
     std::vector<int64_t> pre_processed_values;
     int64_t alpha_value = 1, pre_processed_value;
+    unsigned long long mult_value;
 
     for(unsigned int i = 0; i < values.size(); i++){
-        pre_processed_value = values[i] * alpha_value % plaintext_modulus;
+	mult_value = values[i] * alpha_value;
+
+        pre_processed_value = mult_value % plaintext_modulus;
 
         alpha_value = alpha_value * alpha % plaintext_modulus;
 
@@ -36,15 +38,19 @@ std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t al
 
 std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_values, int64_t inverse_alpha, int64_t plaintext_modulus){
     std::vector<int64_t> post_processed_values;
-    int64_t inverse_alpha_value = 1, post_processed_value;
+    unsigned long long inverse_alpha_value = 1;
+    uint64_t post_processed_value;
+    unsigned long long mult_value;
 
     for(unsigned int i = 0; i < pre_processed_values.size(); i++){
-        
+
         if(pre_processed_values[i] < 0){
             pre_processed_values[i] += plaintext_modulus;
         }
 
-        post_processed_value = pre_processed_values[i] * inverse_alpha_value % plaintext_modulus;
+        mult_value = pre_processed_values[i] * inverse_alpha_value;
+
+        post_processed_value = mult_value % plaintext_modulus;
 
         inverse_alpha_value = inverse_alpha_value * inverse_alpha % plaintext_modulus;
 
@@ -54,12 +60,15 @@ std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_val
     return post_processed_values;
 }
 
+
 /*
  * argv[1] --> number's file name
 */
 int main(int argc, char *argv[]) {
+    int64_t plaintext_modulus = 4295049217;
+    int64_t alpha = 626534755, inverse_alpha = 2398041854;
 
-    int64_t plaintext_modulus = 65537;
+   // int64_t plaintext_modulus = 65537;
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
@@ -86,12 +95,13 @@ int main(int argc, char *argv[]) {
     
     // Pre process the numbers before encrypting
     // Auxiliary Variables for the Pre Processing 
-    int64_t alpha = 81, inverse_alpha = 8091;
+   // int64_t alpha = 81, inverse_alpha = 8091;
 	
     std::vector<int64_t> multiply_by(8192, 0);
     std::vector<int64_t> all_numbers(8192, 0);
-    std::vector<int64_t> all_ones(8192, 1);
     multiply_by[0] = 3;
+    std::vector<int64_t> all_ones(8192, 1);
+    std::vector<int64_t> all_zeros(8192, 0);
     
    for(int i = 0; i < atoi(argv[1]); i++){
 	   all_numbers[i] = 1;
@@ -100,16 +110,18 @@ int main(int argc, char *argv[]) {
     std::vector<int64_t> pre_processed_numbers = pre_process_numbers(all_numbers, alpha, plaintext_modulus);
     std::vector<int64_t> pre_processed_multiply_by = pre_process_numbers(multiply_by, alpha, plaintext_modulus);
     std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
+    std::vector<int64_t> pre_processed_all_zeros = pre_process_numbers(all_zeros, alpha, plaintext_modulus);
 
     Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_numbers);
     Plaintext plaintextMultiply = cryptoContext->MakeCoefPackedPlaintext(pre_processed_multiply_by);
     Plaintext plaintextAllOnes = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_ones);
+    Plaintext plaintextAllZeros = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_zeros);
 
     //Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(all_numbers);
     auto elementsCipher = cryptoContext->Encrypt(keyPair.publicKey, plaintext);
     auto ciphertextAdd = cryptoContext->EvalMult(elementsCipher, plaintextAllOnes);
-    //ciphertextAdd = cryptoContext->EvalMult(ciphertextAdd, plaintextMultiply);
-    ciphertextAdd = cryptoContext->EvalMult(ciphertextAdd, ciphertextAdd);
+
+    ciphertextAdd = cryptoContext->EvalMult(ciphertextAdd, plaintextMultiply);
     // Decryption
     Plaintext plaintextDec;
  
