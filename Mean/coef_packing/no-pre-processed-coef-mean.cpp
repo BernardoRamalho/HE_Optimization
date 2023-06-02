@@ -152,9 +152,9 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Plaintext Operations
-    int numberValues = plaintextDecAdd->GetCoefPackedValue().size();
+    int numberValues = plaintextDec->GetCoefPackedValue().size();
     
-    double mean_sum = plaintextDecAdd->GetCoefPackedValue()[numberValues - 1];
+    double mean_sum = plaintextDec->GetCoefPackedValue()[numberValues - 1];
    
     double mean = mean_sum / total_elements; 
 
