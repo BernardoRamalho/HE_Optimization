@@ -19,7 +19,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream meanCSV("timeCSVs/mean.csv", std::ios_base::app);
+    std::ofstream meanCSV("timeCSVs/1000mean.csv", std::ios_base::app);
     
     meanCSV << "opt-coef-rot, ";
 
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(65537);
+    parameters.SetPlaintextModulus(4295049217);
     parameters.SetMultiplicativeDepth(2);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);

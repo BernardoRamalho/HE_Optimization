@@ -19,7 +19,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream meanCSV("timeCSVs/mean.csv", std::ios_base::app);
+    std::ofstream meanCSV("timeCSVs/1000mean.csv", std::ios_base::app);
     
     meanCSV << "pre-proc-coef-rot, ";
 
@@ -46,12 +46,17 @@ std::vector<int64_t> generate_alpha_values(int64_t alpha, int64_t plaintext_modu
     return alpha_values;
 }
 
-std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, std::vector<int64_t> alpha_values, int64_t plaintext_modulus){
+std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
     std::vector<int64_t> pre_processed_values;
-    int64_t pre_processed_value;
+    int64_t alpha_value = 1, pre_processed_value;
+    unsigned long long mult_value;
 
     for(unsigned int i = 0; i < values.size(); i++){
-        pre_processed_value = values[i] * alpha_values[i] % plaintext_modulus;
+	mult_value = values[i] * alpha_value;
+
+        pre_processed_value = mult_value % plaintext_modulus;
+
+        alpha_value = alpha_value * alpha % plaintext_modulus;
 
         if(pre_processed_value > (plaintext_modulus - 1 ) /2){
 		    pre_processed_value = pre_processed_value - plaintext_modulus;
@@ -65,15 +70,19 @@ std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, std::vecto
 
 std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_values, int64_t inverse_alpha, int64_t plaintext_modulus){
     std::vector<int64_t> post_processed_values;
-    int64_t inverse_alpha_value = 1, post_processed_value;
+    unsigned long long inverse_alpha_value = 1;
+    uint64_t post_processed_value;
+    unsigned long long mult_value;
 
     for(unsigned int i = 0; i < pre_processed_values.size(); i++){
-        
+
         if(pre_processed_values[i] < 0){
             pre_processed_values[i] += plaintext_modulus;
         }
 
-        post_processed_value = pre_processed_values[i] * inverse_alpha_value % plaintext_modulus;
+        mult_value = pre_processed_values[i] * inverse_alpha_value;
+
+        post_processed_value = mult_value % plaintext_modulus;
 
         inverse_alpha_value = inverse_alpha_value * inverse_alpha % plaintext_modulus;
 
@@ -117,7 +126,7 @@ int main(int argc, char *argv[]) {
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
-    int64_t plaintext_modulus = 65537;
+    int64_t plaintext_modulus = 4295049217;
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
@@ -144,7 +153,7 @@ int main(int argc, char *argv[]) {
     
     // Pre process the numbers before encrypting
     // Auxiliary Variables for the Pre Processing 
-    int64_t alpha = 81, inverse_alpha = 8091;
+    nt64_t alpha = 626534755, inverse_alpha = 2398041854;
 	
     std::vector<int64_t> alpha_values = generate_alpha_values(alpha, plaintext_modulus, size_vectors);
     std::vector<int64_t> pre_processed_numbers = pre_process_numbers(all_numbers, alpha_values, plaintext_modulus);

@@ -25,9 +25,12 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
 std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
     std::vector<int64_t> pre_processed_values;
     int64_t alpha_value = 1, pre_processed_value;
+    unsigned long long mult_value;
 
     for(unsigned int i = 0; i < values.size(); i++){
-        pre_processed_value = values[i] * alpha_value % plaintext_modulus;
+	mult_value = values[i] * alpha_value;
+
+        pre_processed_value = mult_value % plaintext_modulus;
 
         alpha_value = alpha_value * alpha % plaintext_modulus;
 
@@ -43,15 +46,19 @@ std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t al
 
 std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_values, int64_t inverse_alpha, int64_t plaintext_modulus){
     std::vector<int64_t> post_processed_values;
-    int64_t inverse_alpha_value = 1, post_processed_value;
+    unsigned long long inverse_alpha_value = 1;
+    uint64_t post_processed_value;
+    unsigned long long mult_value;
 
     for(unsigned int i = 0; i < pre_processed_values.size(); i++){
-        
+
         if(pre_processed_values[i] < 0){
             pre_processed_values[i] += plaintext_modulus;
         }
 
-        post_processed_value = pre_processed_values[i] * inverse_alpha_value % plaintext_modulus;
+        mult_value = pre_processed_values[i] * inverse_alpha_value;
+
+        post_processed_value = mult_value % plaintext_modulus;
 
         inverse_alpha_value = inverse_alpha_value * inverse_alpha % plaintext_modulus;
 
