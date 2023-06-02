@@ -19,9 +19,9 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream meanCSV("timeCSVs/1000mean.csv", std::ios_base::app);
+    std::ofstream meanCSV("timeCSVs/mean.csv", std::ios_base::app);
     
-    meanCSV << "pre-proc-coef-rot, ";
+    meanCSV << "pre-proc-coef, ";
 
     for(unsigned int i = 0; i < processingTimes.size(); i++){
         meanCSV << processingTimes[i] << ", ";
@@ -33,28 +33,12 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     meanCSV.close();
 }
 
-std::vector<int64_t> generate_alpha_values(int64_t alpha, int64_t plaintext_modulus, int size){
-    std::vector<int64_t> alpha_values;
-    int64_t alpha_value = 1;
-
-    for(unsigned int i = 0; i < size; i++){
-        alpha_values.append(alpha_value);
-
-        alpha_value = alpha_value * alpha % plaintext_modulus;
-    }
-
-    return alpha_values;
-}
-
 std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
     std::vector<int64_t> pre_processed_values;
     int64_t alpha_value = 1, pre_processed_value;
-    unsigned long long mult_value;
 
     for(unsigned int i = 0; i < values.size(); i++){
-	mult_value = values[i] * alpha_value;
-
-        pre_processed_value = mult_value % plaintext_modulus;
+        pre_processed_value = values[i] * alpha_value % plaintext_modulus;
 
         alpha_value = alpha_value * alpha % plaintext_modulus;
 
@@ -70,19 +54,15 @@ std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t al
 
 std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_values, int64_t inverse_alpha, int64_t plaintext_modulus){
     std::vector<int64_t> post_processed_values;
-    unsigned long long inverse_alpha_value = 1;
-    uint64_t post_processed_value;
-    unsigned long long mult_value;
+    int64_t inverse_alpha_value = 1, post_processed_value;
 
     for(unsigned int i = 0; i < pre_processed_values.size(); i++){
-
+        
         if(pre_processed_values[i] < 0){
             pre_processed_values[i] += plaintext_modulus;
         }
 
-        mult_value = pre_processed_values[i] * inverse_alpha_value;
-
-        post_processed_value = mult_value % plaintext_modulus;
+        post_processed_value = pre_processed_values[i] * inverse_alpha_value % plaintext_modulus;
 
         inverse_alpha_value = inverse_alpha_value * inverse_alpha % plaintext_modulus;
 
@@ -119,9 +99,6 @@ int main(int argc, char *argv[]) {
         all_numbers.push_back(number);
     }
 
-    // Due to the optimization we can do log(n) - 1 rotations
-    double number_rotations = ceil(log2(size_vectors)) - 1;
-
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
@@ -155,25 +132,12 @@ int main(int argc, char *argv[]) {
     // Auxiliary Variables for the Pre Processing 
     int64_t alpha = 626534755, inverse_alpha = 2398041854;
 	
-    std::vector<int64_t> alpha_values = generate_alpha_values(alpha, plaintext_modulus, size_vectors);
-    std::vector<int64_t> pre_processed_numbers = pre_process_numbers(all_numbers, alpha_values, plaintext_modulus);
+    std::vector<int64_t> pre_processed_numbers = pre_process_numbers(all_numbers, alpha, plaintext_modulus);
     
+    std::vector<int64_t> all_ones(8192, 1);
+    std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
+    Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_ones);
 
-    // Generate the rotation plaintexts
-    std::vector<Plaintext> rotation_plaintexts;
-    Plaintext plaintextRot;
-
-    for(int i = 0; i < number_rotations; i++){
-	    // Create vector of size 8192 filled with 0
-        std::vector<int64_t> rotationVector(8191, 0);
-
-        // Rotating by 2^i --> element @ index 2^i = 1
-	    rotationVector[(int)pow(2, i)] = alpha_values[(int)pow(2, i)];
-
-        rotation_plaintexts.push_back(cryptoContext->MakeCoefPackedPlaintext(rotationVector));
-    }
-
-    
     // Print time spent on setup
     TOC(t);
     processingTimes[0] = TOC(t);
@@ -184,7 +148,6 @@ int main(int argc, char *argv[]) {
 
     // Create Plaintexts
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
-    
     int begin, end;
     
     for(int i = 0; i < number_vectors; i++){
@@ -193,7 +156,7 @@ int main(int argc, char *argv[]) {
         end = size_vectors * (i + 1);
 
         // Encode Plaintext  with coefficient packing and encrypt it into a ciphertext vector
-        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
+        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(pre_processed_numbers.begin() + begin, pre_processed_numbers.begin() + end));
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
 
@@ -207,13 +170,8 @@ int main(int argc, char *argv[]) {
 	    
     // Homomorphic Operations 
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
-    auto ciphertextRot = ciphertextAdd;
-    
-    // For each iteration, rotate the vector through multiplication and then add it with the non rotated vector
-    for(int i = 0; i < number_rotations; i++){
-   	    ciphertextRot = cryptoContext->EvalMult(ciphertextAdd, rotation_plaintexts[i]);
-        ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
-    }
+
+    ciphertextAdd = cryptoContext->EvalMult(ciphertextAdd, all_ones_plaintext); 
 
     // Print time spent on homomorphic operations
     TOC(t);
@@ -224,9 +182,9 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Decryption
-    Plaintext plaintextDecAdd;
+    Plaintext plaintextDec;
  
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDec);
 
     // Print time spent on decryption
     TOC(t);
@@ -239,9 +197,7 @@ int main(int argc, char *argv[]) {
     // Plaintext Operations
     std::vector<int64_t> post_processed_values = post_process_numbers(plaintextDec->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
 
-    int numberValues = post_processed_values.size();
-    
-    double mean_sum = post_processed_values[0]*-1 + post_processed_values[numberValues - 1];
+    double mean_sum = post_processed_values[0];
    
     double mean = mean_sum / total_elements; 
 
