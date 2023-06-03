@@ -21,7 +21,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
 
     std::ofstream meanCSV("timeCSVs/1000mean.csv", std::ios_base::app);
     
-    meanCSV << "pre-proc-coef-rot, ";
+    meanCSV << "pre-comp-coef-rot, ";
 
     for(unsigned int i = 0; i < processingTimes.size(); i++){
         meanCSV << processingTimes[i] << ", ";

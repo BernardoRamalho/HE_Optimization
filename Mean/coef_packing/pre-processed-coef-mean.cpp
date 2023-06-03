@@ -33,11 +33,14 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     meanCSV.close();
 }
 
-std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
+std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus, int64_t size_vectors){
     std::vector<int64_t> pre_processed_values;
     int64_t alpha_value = 1, pre_processed_value;
 
     for(unsigned int i = 0; i < values.size(); i++){
+	   if(i % size_vectors == 0){
+		   alpha_value = 1;
+	   }
         pre_processed_value = values[i] * alpha_value % plaintext_modulus;
 
         alpha_value = alpha_value * alpha % plaintext_modulus;
@@ -132,10 +135,11 @@ int main(int argc, char *argv[]) {
     // Auxiliary Variables for the Pre Processing 
     int64_t alpha = 626534755, inverse_alpha = 2398041854;
 	
-    std::vector<int64_t> pre_processed_numbers = pre_process_numbers(all_numbers, alpha, plaintext_modulus);
+    std::vector<int64_t> pre_processed_numbers = pre_process_numbers(all_numbers, alpha, plaintext_modulus, size_vectors);
     
     std::vector<int64_t> all_ones(8192, 1);
-    std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
+    std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus, size_vectors);
+ 
     Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_ones);
 
     // Print time spent on setup
@@ -211,7 +215,7 @@ int main(int argc, char *argv[]) {
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
     //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    //std::cout << "Mean: " << mean << std::endl;
+   // std::cout << "Mean: " << mean << std::endl;
 
     printIntoCSV(processingTimes, total_time, mean);
 }
