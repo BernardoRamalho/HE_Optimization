@@ -20,13 +20,13 @@ using namespace lbcrypto;
 */
 int main(int argc, char *argv[]) {
     // Auxiliary Variables for the Pre Processing 
-    int64_t plaintext_modulus = 7000000462849;
-	
+    auto plaintext_modulus = std::stol(argv[1]);
+    std::cout << "Modulus: " << plaintext_modulus << std::endl;	
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
     parameters.SetPlaintextModulus(plaintext_modulus);
-    parameters.SetMultiplicativeDepth(2);
+    parameters.SetMultiplicativeDepth(atoi(argv[2]));
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
     // Enable features that you wish to use
@@ -45,19 +45,19 @@ int main(int argc, char *argv[]) {
 
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
+    auto n = cryptoContext->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder() / 2;
+	std::cout << "Size: " << n << std::endl;
 
-    std::vector<int64_t> numbers(8192, 0);
+	std::vector<int64_t> vec(n, 1);
 
-    numbers[0] = 4294967300;
+	Plaintext p = cryptoContext->MakePackedPlaintext(vec);
 
-    Plaintext plaintext = cryptoContext->MakePackedPlaintext(numbers);
-    Plaintext plaintext2 = cryptoContext->MakeCoefPackedPlaintext(numbers);
-    //auto cipher1 = cryptoContext->Encrypt(keyPair.publicKey,plaintext);
-    //auto cipher2 = cryptoContext->Encrypt(keyPair.publicKey,plaintext2);
+	auto c = cryptoContext->Encrypt(keyPair.publicKey, p);
 
-    //Plaintext p;
+        c = cryptoContext->EvalAdd(c, c);
 
-    //cryptoContext->Decrypt(keyPair.secretKey, cipher, &p);
-    std::cout << plaintext->GetPackedValue() << std::endl;
-    std::cout << plaintext2->GetCoefPackedValue() << std::endl;
+	cryptoContext->Decrypt(keyPair.secretKey, c, &p);
+
+	std::cout << p->GetPackedValue().size() << std::endl;
+
 }
