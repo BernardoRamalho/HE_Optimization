@@ -50,14 +50,14 @@ int main(int argc, char *argv[]) {
 
     numbers[0] = 4294967300;
 
-    Plaintext plaintext = cryptoContext->MakePackedPlaintext(numbers);
+    //Plaintext plaintext = cryptoContext->MakePackedPlaintext(numbers);
     Plaintext plaintext2 = cryptoContext->MakeCoefPackedPlaintext(numbers);
     //auto cipher1 = cryptoContext->Encrypt(keyPair.publicKey,plaintext);
-    //auto cipher2 = cryptoContext->Encrypt(keyPair.publicKey,plaintext2);
+    auto cipher2 = cryptoContext->Encrypt(keyPair.publicKey,plaintext2);
+    cipher2 = cryptoContext->EvalAdd(cipher2, cipher2);
+    Plaintext p;
 
-    //Plaintext p;
-
-    //cryptoContext->Decrypt(keyPair.secretKey, cipher, &p);
-    std::cout << plaintext->GetPackedValue() << std::endl;
-    std::cout << plaintext2->GetCoefPackedValue() << std::endl;
+    cryptoContext->Decrypt(keyPair.secretKey, cipher2, &p);
+    //std::cout << plaintext->GetPackedValue() << std::endl;
+    std::cout << p->GetCoefPackedValue() << std::endl;
 }

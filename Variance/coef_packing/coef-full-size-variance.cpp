@@ -105,11 +105,10 @@ int main(int argc, char *argv[]) {
     TIC(t);
 
     // Auxiliary Variables for the Pre Processing 
-//    int64_t plaintext_modulus = 4295049217;
-      
-   // int64_t alpha = 626534755, inverse_alpha = 2398041854;
-    int64_t alpha = 81, inverse_alpha = 8091;
-    int64_t plaintext_modulus = 65537;
+    int64_t plaintext_modulus = 4295049217;  
+    int64_t alpha = 626534755, inverse_alpha = 2398041854;
+    //int64_t alpha = 81, inverse_alpha = 8091;
+    //int64_t plaintext_modulus = 65537;
     std::vector<int64_t> pre_processed_numbers;
     pre_processed_numbers = pre_process_numbers(all_number_N, alpha, plaintext_modulus);
 
@@ -201,9 +200,9 @@ int main(int argc, char *argv[]) {
     ciphertextSquareSum = cryptoContext->EvalSquare(ciphertextSquareSum); // Get square sum * sum
 
     // Decrypt to check the values
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextSquareSum, &inter_plaintext);
-    std::vector<int64_t> inter_results = post_process_numbers(inter_plaintext->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
-    std::cout << "Square Sum x Total_Elems\n" << inter_results << std::endl; 
+    //cryptoContext->Decrypt(keyPair.secretKey, ciphertextSquareSum, &inter_plaintext);
+    //std::vector<int64_t> inter_results = post_process_numbers(inter_plaintext->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
+    //std::cout << "Square Sum x Total_Elem\n" << inter_results << std::endl; 
 
     // Calculate the Inner Product
     // Multiplying both vectors together will calculate the Inner Product value on the last index of the plaintext
@@ -211,9 +210,9 @@ int main(int argc, char *argv[]) {
 
     ciphertextInnerProduct = cryptoContext->EvalMult(ciphertextInnerProduct, multiply_by_plaintext);
 // Decrypt to check the values
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &inter_plaintext);
-    inter_results = post_process_numbers(inter_plaintext->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
-    std::cout << "Inner Product x Total_Elems^2\n" << inter_results << std::endl;
+    //cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &inter_plaintext);
+    //inter_results = post_process_numbers(inter_plaintext->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
+    //std::cout << "Inner Product x Total_Elems^2\n" << inter_results << std::endl;
 // Subtract the mean from the inner product
     auto ciphertextResult = cryptoContext->EvalSub(ciphertextInnerProduct, ciphertextSquareSum);
 
@@ -240,8 +239,7 @@ int main(int argc, char *argv[]) {
 
     // Plaintext Operations
     std::vector<int64_t> results = post_process_numbers(plaintextResult->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
-    std::cout << "Results\n" << results << std::endl;
-    double variance = results[size_vectors - 1] / pow(total_elements, 2); 
+    double variance = results[size_vectors - 1] / pow(total_elements, 3); 
 
     // Print time spent on plaintext operations
     TOC(t);
