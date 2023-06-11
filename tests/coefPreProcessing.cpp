@@ -9,6 +9,7 @@
  * 
  */
 
+#include <NTL/ZZ.h>
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>

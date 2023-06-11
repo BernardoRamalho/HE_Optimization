@@ -1,9 +1,73 @@
+#include <NTL/ZZ.h>
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
 
 using namespace lbcrypto;
+using namespace NTL;
 
+
+
+std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
+    std::vector<int64_t> pre_processed_values;
+
+    ZZ mult_value, zz_value, alpha_value = ZZ(1), zz_alpha = ZZ(alpha), zz_modulus = ZZ(plaintext_modulus);
+    
+    for(unsigned int i = 0; i < values.size(); i++){
+        int64_t pre_processed_value;
+	
+	zz_value = ZZ(values[i]);
+	mult_value = zz_value * alpha_value;
+
+        zz_value = mult_value % plaintext_modulus;
+
+        alpha_value = alpha_value * alpha % zz_modulus;
+        
+	conv(pre_processed_value, zz_value);
+
+        if(pre_processed_value > (plaintext_modulus - 1 ) /2){
+		    pre_processed_value = pre_processed_value - plaintext_modulus;
+	    }
+
+        pre_processed_values.push_back(pre_processed_value);
+    }
+
+    return pre_processed_values;
+}
+
+std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_values, int64_t inverse_alpha, int64_t plaintext_modulus){
+    std::vector<int64_t> post_processed_values;
+
+    ZZ mult_value, zz_value, inverse_alpha_value = ZZ(1), zz_inverse_alpha = ZZ(inverse_alpha), zz_modulus = ZZ(plaintext_modulus);
+
+    for(unsigned int i = 0; i < pre_processed_values.size(); i++){
+
+        if(pre_processed_values[i] < 0){
+            pre_processed_values[i] += plaintext_modulus;
+        }
+
+        zz_value = ZZ(pre_processed_values[i]);
+
+        mult_value = zz_value * inverse_alpha_value;
+
+        zz_value = mult_value % plaintext_modulus;
+
+        inverse_alpha_value = inverse_alpha_value * zz_inverse_alpha % zz_modulus;
+
+        int64_t post_processed_value; 
+	conv(post_processed_value, zz_value);
+
+        post_processed_values.push_back(post_processed_value);
+    }
+
+    return post_processed_values;
+}
+void print_packed_values(Ciphertext<DCRTPoly> c, KeyPair<DCRTPoly> keyPair, CryptoContext<DCRTPoly> cryptoContext, int64_t inverse_alpha, int64_t plaintext_modulus){
+	Plaintext p;
+	cryptoContext->Decrypt(keyPair.secretKey, c, &p);
+	std::vector values = post_process_numbers(p->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
+	std::cout << values << std::endl;
+}
 void printIntoCSV(std::vector<double> processingTimes, double total_time, double mean){
     // Open the file
     std::string filePath;
@@ -21,53 +85,6 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
  
     meanCSV.close();
 }
-
-std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
-    std::vector<int64_t> pre_processed_values;
-    int64_t alpha_value = 1, pre_processed_value;
-    unsigned long long mult_value;
-
-    for(unsigned int i = 0; i < values.size(); i++){
-	mult_value = values[i] * alpha_value;
-
-        pre_processed_value = mult_value % plaintext_modulus;
-
-        alpha_value = alpha_value * alpha % plaintext_modulus;
-
-        if(pre_processed_value > (plaintext_modulus - 1 ) /2){
-		    pre_processed_value = pre_processed_value - plaintext_modulus;
-	    }
-
-        pre_processed_values.push_back(pre_processed_value);
-    }
-
-    return pre_processed_values;
-}
-
-std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_values, int64_t inverse_alpha, int64_t plaintext_modulus){
-    std::vector<int64_t> post_processed_values;
-    unsigned long long inverse_alpha_value = 1;
-    uint64_t post_processed_value;
-    unsigned long long mult_value;
-
-    for(unsigned int i = 0; i < pre_processed_values.size(); i++){
-
-        if(pre_processed_values[i] < 0){
-            pre_processed_values[i] += plaintext_modulus;
-        }
-
-        mult_value = pre_processed_values[i] * inverse_alpha_value;
-
-        post_processed_value = mult_value % plaintext_modulus;
-
-        inverse_alpha_value = inverse_alpha_value * inverse_alpha % plaintext_modulus;
-
-        post_processed_values.push_back(post_processed_value);
-    }
-
-    return post_processed_values;
-}
-
 
 /*
  * argv[1] --> number's file name
@@ -103,12 +120,10 @@ int main(int argc, char *argv[]) {
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
+    
+    int64_t plaintext_modulus = 7000000462849;
+    int64_t alpha = 3398481477433, inverse_alpha = 2279133059052;
 
-    // Auxiliary Variables for the Pre Processing 
-    int64_t plaintext_modulus = 4295049217;  
-    int64_t alpha = 626534755, inverse_alpha = 2398041854;
-    //int64_t alpha = 81, inverse_alpha = 8091;
-    //int64_t plaintext_modulus = 65537;
     std::vector<int64_t> pre_processed_numbers;
     pre_processed_numbers = pre_process_numbers(all_number_N, alpha, plaintext_modulus);
 
@@ -196,13 +211,9 @@ int main(int argc, char *argv[]) {
     auto ciphertextSquareSum = cryptoContext->EvalAddMany(ciphertexts);
 
     ciphertextSquareSum = cryptoContext->EvalMult(ciphertextSquareSum, all_ones_plaintext); // Get Sum in all Indexes
-    
+       print_packed_values(ciphertexts[0], keyPair,cryptoContext, inverse_alpha, plaintext_modulus);
+  
     ciphertextSquareSum = cryptoContext->EvalSquare(ciphertextSquareSum); // Get square sum * sum
-
-    // Decrypt to check the values
-    //cryptoContext->Decrypt(keyPair.secretKey, ciphertextSquareSum, &inter_plaintext);
-    //std::vector<int64_t> inter_results = post_process_numbers(inter_plaintext->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
-    //std::cout << "Square Sum x Total_Elem\n" << inter_results << std::endl; 
 
     // Calculate the Inner Product
     // Multiplying both vectors together will calculate the Inner Product value on the last index of the plaintext

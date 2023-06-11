@@ -1,20 +1,27 @@
+#include <NTL/ZZ.h>
 #include "openfhe.h"
 #include <iostream>
 #include <fstream>
 
 using namespace lbcrypto;
+using namespace NTL;
 
 std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t alpha, int64_t plaintext_modulus){
     std::vector<int64_t> pre_processed_values;
-    int64_t alpha_value = 1, pre_processed_value;
-    unsigned long long mult_value;
 
+    ZZ mult_value, zz_value, alpha_value = ZZ(1), zz_alpha = ZZ(alpha), zz_modulus = ZZ(plaintext_modulus);
+    
     for(unsigned int i = 0; i < values.size(); i++){
-	mult_value = values[i] * alpha_value;
+        int64_t pre_processed_value;
+	
+	zz_value = ZZ(values[i]);
+	mult_value = zz_value * alpha_value;
 
-        pre_processed_value = mult_value % plaintext_modulus;
+        zz_value = mult_value % plaintext_modulus;
 
-        alpha_value = alpha_value * alpha % plaintext_modulus;
+        alpha_value = alpha_value * alpha % zz_modulus;
+        
+	conv(pre_processed_value, zz_value);
 
         if(pre_processed_value > (plaintext_modulus - 1 ) /2){
 		    pre_processed_value = pre_processed_value - plaintext_modulus;
@@ -28,9 +35,8 @@ std::vector<int64_t> pre_process_numbers(std::vector<int64_t> values, int64_t al
 
 std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_values, int64_t inverse_alpha, int64_t plaintext_modulus){
     std::vector<int64_t> post_processed_values;
-    unsigned long long inverse_alpha_value = 1;
-    uint64_t post_processed_value;
-    unsigned long long mult_value;
+
+    ZZ mult_value, zz_value, inverse_alpha_value = ZZ(1), zz_inverse_alpha = ZZ(inverse_alpha), zz_modulus = ZZ(plaintext_modulus);
 
     for(unsigned int i = 0; i < pre_processed_values.size(); i++){
 
@@ -38,11 +44,16 @@ std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_val
             pre_processed_values[i] += plaintext_modulus;
         }
 
-        mult_value = pre_processed_values[i] * inverse_alpha_value;
+        zz_value = ZZ(pre_processed_values[i]);
 
-        post_processed_value = mult_value % plaintext_modulus;
+        mult_value = zz_value * inverse_alpha_value;
 
-        inverse_alpha_value = inverse_alpha_value * inverse_alpha % plaintext_modulus;
+        zz_value = mult_value % plaintext_modulus;
+
+        inverse_alpha_value = inverse_alpha_value * zz_inverse_alpha % zz_modulus;
+
+        int64_t post_processed_value; 
+	conv(post_processed_value, zz_value);
 
         post_processed_values.push_back(post_processed_value);
     }
@@ -174,12 +185,12 @@ int64_t plaintext_modulus = 4295049217;
     // Calculate the Sum
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
     
-     //print_packed_values(cTest, keyPair,cryptoContext, inverse_alpha, plaintext_modulus);
     auto ciphertextSum = cryptoContext->EvalMult(ciphertextAdd, all_ones_plaintext); 
+
     // Create plaintext with n value in the first index
     std::vector<int64_t> multiply_by(8192, 0);
     multiply_by[0] = total_elements;
-    Plaintext plaintextTotalElements = cryptoContext->MakeCoefPackedPlaintext(multiply_by);
+    Plaintext plaintextTotalElements = cryptoContext->MakeCoefPackedPlaintext(pre_process_numbers(multiply_by, alpha, plaintext_modulus));
     
     // Calculate n*xi
     auto cipher = cryptoContext->EvalMult(ciphertexts[0], plaintextTotalElements);
@@ -192,6 +203,8 @@ int64_t plaintext_modulus = 4295049217;
     for(int i = 0; i < (int)ciphertexts.size(); i++){
         // Calculate n*xi - sum(x)
         auto ciphertextSub = cryptoContext->EvalSub(cipher, ciphertextSum);
+
+     print_packed_values(ciphertextSub, keyPair,cryptoContext, inverse_alpha, plaintext_modulus);
         auto invertedCiphertextSub = cryptoContext->EvalSub(inverted_cipher,ciphertextSum); 
 	
         // Square Everything
