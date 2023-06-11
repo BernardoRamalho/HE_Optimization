@@ -1,17 +1,7 @@
-def is_prime(n):
-    if n <= 1:
-        return False
-    elif n <= 3:
-        return True
-    elif n % 2 == 0 or n % 3 == 0:
-        return False
-
-    i = 5
-    while i * i <= n:
-        if n % i == 0 or n % (i + 2) == 0:
+def is_prime(num):
+    for n in range(2,int(num**0.5)+1):
+        if num%n==0:
             return False
-        i += 6
-
     return True
 
 def find_two_primes_with_sum(n):
