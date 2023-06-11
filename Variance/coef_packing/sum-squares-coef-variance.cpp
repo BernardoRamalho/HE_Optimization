@@ -50,6 +50,14 @@ std::vector<int64_t> post_process_numbers(std::vector<int64_t> pre_processed_val
     return post_processed_values;
 }
 
+
+void print_packed_values(Ciphertext<DCRTPoly> c, KeyPair<DCRTPoly> keyPair, CryptoContext<DCRTPoly> cryptoContext, int64_t inverse_alpha, int64_t plaintext_modulus){
+	Plaintext p;
+	cryptoContext->Decrypt(keyPair.secretKey, c, &p);
+	std::vector values = post_process_numbers(p->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
+	std::cout << values << std::endl;
+}
+
 /*
  * argv[1] --> number's file name
 */
@@ -76,11 +84,12 @@ int main(int argc, char *argv[]) {
     while (numbers_file >> number) {
         numbers.push_back(number);
     }
-
     // Auxiliary Variables for the Pre Processing 
-    int64_t plaintext_modulus = 7000000462849;
-    int64_t alpha = 3398481477433, inverse_alpha = 2279133059052;
-	
+  //      int64_t plaintext_modulus = 7000000462849;
+//    int64_t alpha = 3398481477433, inverse_alpha = 2279133059052;	
+int64_t plaintext_modulus = 4295049217;
+      
+    int64_t alpha = 626534755, inverse_alpha = 2398041854;
     std::vector<int64_t> pre_processed_numbers;
     pre_processed_numbers = pre_process_numbers(numbers, alpha, plaintext_modulus);
     
@@ -137,9 +146,10 @@ int main(int argc, char *argv[]) {
 
         // Create vectors
         std::vector<int64_t> values(pre_processed_numbers.begin() + begin, pre_processed_numbers.begin() + end);
-        std::vector<int64_t> inverted_numbers = values;
+        std::vector<int64_t> inverted_numbers = numbers;
         reverse(inverted_numbers.begin(), inverted_numbers.end());
 
+        inverted_numbers = pre_process_numbers(inverted_numbers, alpha, plaintext_modulus);
         // Encode Plaintext with slot packing and encrypt it into a ciphertext vector
         Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(values);
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
@@ -163,21 +173,26 @@ int main(int argc, char *argv[]) {
 
     // Calculate the Sum
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
+    
+     //print_packed_values(cTest, keyPair,cryptoContext, inverse_alpha, plaintext_modulus);
     auto ciphertextSum = cryptoContext->EvalMult(ciphertextAdd, all_ones_plaintext); 
-     
     // Create plaintext with n value in the first index
-    Plaintext plaintextTotalElements = cryptoContext->MakeCoefPackedPlaintext({total_elements});
+    std::vector<int64_t> multiply_by(8192, 0);
+    multiply_by[0] = total_elements;
+    Plaintext plaintextTotalElements = cryptoContext->MakeCoefPackedPlaintext(multiply_by);
+    
+    // Calculate n*xi
+    auto cipher = cryptoContext->EvalMult(ciphertexts[0], plaintextTotalElements);
+    auto inverted_cipher = cryptoContext->EvalMult(inverted_ciphertexts[0], plaintextTotalElements);
 
-    auto ciphertextTest = cryptoContext->EvalMult(ciphertexts[0], plaintextTotalElements);
-   
     // Calculate  (xi - mean)^2
     std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
 
  
     for(int i = 0; i < (int)ciphertexts.size(); i++){
         // Calculate n*xi - sum(x)
-        auto ciphertextSub = cryptoContext->EvalSub(cryptoContext->EvalMult(ciphertexts[i], plaintextTotalElements), ciphertextSum);
-        auto invertedCiphertextSub = cryptoContext->EvalSub(cryptoContext->EvalMult(inverted_ciphertexts[i], plaintextTotalElements),ciphertextSum); 
+        auto ciphertextSub = cryptoContext->EvalSub(cipher, ciphertextSum);
+        auto invertedCiphertextSub = cryptoContext->EvalSub(inverted_cipher,ciphertextSum); 
 	
         // Square Everything
         subCiphertexts.push_back(cryptoContext->EvalMult(ciphertextSub, invertedCiphertextSub));
@@ -221,7 +236,7 @@ int main(int argc, char *argv[]) {
     
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
-
+    std::cout <<"Sum: " << variance_sum << std::endl;
     std::cout << "Total runtime: " << total_time << "ms" << std::endl;
     std::cout << "Variance: " << variance << std::endl;
 }

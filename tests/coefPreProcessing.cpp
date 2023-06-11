@@ -104,14 +104,15 @@ int main(int argc, char *argv[]) {
     }
 
     // Auxiliary Variables for the Pre Processing 
-    int64_t plaintext_modulus = 4295049217;
-    int64_t alpha = 626534755, inverse_alpha = 2398041854;
-	
+   // int64_t plaintext_modulus = 4295049217;
+   // int64_t alpha = 626534755, inverse_alpha = 2398041854;
+    int64_t plaintext_modulus = 7000000462849;
+    int64_t alpha = 3398481477433, inverse_alpha = 2279133059052;	
     std::vector<int64_t> pre_processed_numbers;
     pre_processed_numbers = pre_process_numbers(numbers, alpha, plaintext_modulus);
     
-    std::vector<int64_t> all_ones(8192, 1);
-    std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
+    //std::vector<int64_t> all_ones(8192, 1);
+    //std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
 
        // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
@@ -150,16 +151,16 @@ int main(int argc, char *argv[]) {
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
 	    
-    Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_ones);
+    //Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(pre_processed_all_ones);
 
     // Homomorphic Operations 
-    auto ciphertextAdd = cryptoContext->EvalMult(ciphertexts[0], all_ones_plaintext); 
+   // auto ciphertextAdd = cryptoContext->EvalMult(ciphertexts[0], all_ones_plaintext); 
 
     // Decryption
     Plaintext plaintextDec;
  
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDec);
-    std::cout << plaintextDec->GetCoefPackedValue() << std::endl <<std::endl << std::endl;
-    std::vector<int64_t> post_processed_values = post_process_numbers(plaintextDec->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
-    std::cout << post_processed_values << std::endl;
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertexts[0], &plaintextDec);
+   std::vector<int64_t> post_processed_values = post_process_numbers(plaintextDec->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
+    std::cout << post_processed_values << std::endl <<std::endl << std::endl;
+    
 }
