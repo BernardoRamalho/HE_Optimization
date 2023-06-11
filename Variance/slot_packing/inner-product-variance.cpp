@@ -10,7 +10,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
 
     std::ofstream varianceCSV("timeCSVs/variance.csv", std::ios_base::app);
     
-    varianceCSV << "inner-product-slot, ";
+    varianceCSV << "wu-haven-slot, ";
 
     for(unsigned int i = 0; i < processingTimes.size(); i++){
         varianceCSV << processingTimes[i] << ", ";
@@ -197,10 +197,10 @@ int main(int argc, char *argv[]) {
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
-   std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    std::cout << "Variance: " << variance << std::endl;
+   //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    //std::cout << "Variance: " << variance << std::endl;
 
     //std::cout << "Sub: " << plaintextDecAdd->GetPackedValue()[0] << std::endl;
-    //printIntoCSV(processingTimes, total_time, variance);
+    printIntoCSV(processingTimes, total_time, variance);
     
 }

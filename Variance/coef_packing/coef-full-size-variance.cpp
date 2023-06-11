@@ -74,7 +74,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
 
     std::ofstream meanCSV("timeCSVs/variance.csv", std::ios_base::app);
     
-    meanCSV << "full-size-inner-coef, ";
+    meanCSV << "wu-haven-coef, ";
 
     for(unsigned int i = 0; i < processingTimes.size(); i++){
         meanCSV << processingTimes[i] << ", ";
@@ -211,7 +211,6 @@ int main(int argc, char *argv[]) {
     auto ciphertextSquareSum = cryptoContext->EvalAddMany(ciphertexts);
 
     ciphertextSquareSum = cryptoContext->EvalMult(ciphertextSquareSum, all_ones_plaintext); // Get Sum in all Indexes
-       print_packed_values(ciphertexts[0], keyPair,cryptoContext, inverse_alpha, plaintext_modulus);
   
     ciphertextSquareSum = cryptoContext->EvalSquare(ciphertextSquareSum); // Get square sum * sum
 
@@ -220,10 +219,7 @@ int main(int argc, char *argv[]) {
     Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalMult(ciphertexts[0], inverted_ciphertexts[0]);
 
     ciphertextInnerProduct = cryptoContext->EvalMult(ciphertextInnerProduct, multiply_by_plaintext);
-// Decrypt to check the values
-    //cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &inter_plaintext);
-    //inter_results = post_process_numbers(inter_plaintext->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
-    //std::cout << "Inner Product x Total_Elems^2\n" << inter_results << std::endl;
+
 // Subtract the mean from the inner product
     auto ciphertextResult = cryptoContext->EvalSub(ciphertextInnerProduct, ciphertextSquareSum);
 
