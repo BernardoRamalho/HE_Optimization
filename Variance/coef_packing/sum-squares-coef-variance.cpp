@@ -69,6 +69,24 @@ void print_packed_values(Ciphertext<DCRTPoly> c, KeyPair<DCRTPoly> keyPair, Cryp
 	std::cout << values << std::endl;
 }
 
+void printIntoCSV(std::vector<double> processingTimes, double total_time, double variance){
+    // Open the file
+    std::string filePath;
+
+    std::ofstream varianceCSV("timeCSVs/variance.csv", std::ios_base::app);
+    
+    varianceCSV << "deduced-coef, ";
+
+    for(unsigned int i = 0; i < processingTimes.size(); i++){
+        varianceCSV << processingTimes[i] << ", ";
+    }
+    varianceCSV << total_time << ", ";
+    
+    varianceCSV << variance << std::endl;
+ 
+    varianceCSV.close();
+}
+
 /*
  * argv[1] --> number's file name
 */
@@ -96,11 +114,9 @@ int main(int argc, char *argv[]) {
         numbers.push_back(number);
     }
     // Auxiliary Variables for the Pre Processing 
-  //      int64_t plaintext_modulus = 7000000462849;
-//    int64_t alpha = 3398481477433, inverse_alpha = 2279133059052;	
-int64_t plaintext_modulus = 4295049217;
-      
-    int64_t alpha = 626534755, inverse_alpha = 2398041854;
+    int64_t plaintext_modulus = 7000000462849;
+    int64_t alpha = 3398481477433, inverse_alpha = 2279133059052;	
+
     std::vector<int64_t> pre_processed_numbers;
     pre_processed_numbers = pre_process_numbers(numbers, alpha, plaintext_modulus);
     
@@ -140,7 +156,7 @@ int64_t plaintext_modulus = 4295049217;
     TOC(t);
     processingTimes[0] = TOC(t);
     
-    std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
+    //std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
 
     TIC(t);
 
@@ -176,7 +192,7 @@ int64_t plaintext_modulus = 4295049217;
     TOC(t);
     processingTimes[1] = TOC(t);
  
-    std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
+    //std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
     
     TIC(t);
 	    
@@ -204,7 +220,6 @@ int64_t plaintext_modulus = 4295049217;
         // Calculate n*xi - sum(x)
         auto ciphertextSub = cryptoContext->EvalSub(cipher, ciphertextSum);
 
-     print_packed_values(ciphertextSub, keyPair,cryptoContext, inverse_alpha, plaintext_modulus);
         auto invertedCiphertextSub = cryptoContext->EvalSub(inverted_cipher,ciphertextSum); 
 	
         // Square Everything
@@ -218,7 +233,7 @@ int64_t plaintext_modulus = 4295049217;
     TOC(t);
     processingTimes[2] = TOC(t);
  
-    std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
+    //std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
     
     TIC(t);
 
@@ -232,7 +247,7 @@ int64_t plaintext_modulus = 4295049217;
     TOC(t);
     processingTimes[3] = TOC(t);
  
-    std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
+    //std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
     
     TIC(t);
 
@@ -245,11 +260,13 @@ int64_t plaintext_modulus = 4295049217;
     TOC(t);
     processingTimes[4] = TOC(t);
  
-    std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
+    //std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
     
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
-    std::cout <<"Sum: " << variance_sum << std::endl;
-    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    std::cout << "Variance: " << variance << std::endl;
+    //std::cout <<"Sum: " << variance_sum << std::endl;
+    //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    //std::cout << "Variance: " << variance << std::endl;
+
+    printIntoCSV(processingTimes, total_time, variance);
 }
