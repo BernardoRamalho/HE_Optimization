@@ -4,7 +4,7 @@
 
 using namespace lbcrypto;
 
-Ciphertext<DCRTPoly> calculateSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations, int64_t size_vectors){
+Ciphertext<DCRTPoly> calculateSum(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations, int64_t ringDim){
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
 
     auto ciphertextRot = ciphertextAdd;
@@ -49,31 +49,33 @@ int main(int argc, char *argv[]) {
     }
 
     // Header of file contains information about nr of vector and the size of each of them
-    int64_t number_vectors, size_vectors, number;
+    int64_t total_elements, number;
     std::vector<int64_t> all_numbers;
 
-    numbers_file >> number_vectors;
-    numbers_file >> size_vectors;
-
-    int64_t total_elements = size_vectors * number_vectors;
+    numbers_file >> total_elements;
 
     // Body of the file contains all the numbers
     while (numbers_file >> number) {
         all_numbers.push_back(number);
     }
 
-    // Due to the optimization we can do log(n) - 1 rotations
-    double number_rotations = ceil(log2(size_vectors));
-
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
+    int64_t plaintext_modulus = atol(argv[2]);
+    int64_t ringDim = atoi(argv[3]);
+    float standardDev = atof(argv[4]);
+    
+    int64_t number_vectors = total_elements / ringDim;
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(7000000462849);
+    parameters.SetPlaintextModulus(plaintext_modulus);
     parameters.SetMultiplicativeDepth(2);
+    parameters.SetSecurityLevel(HEStd_NotSet); // disable security
+    parameters.SetRingDim(ringDim);
+    parameters.SetStandardDeviation(standardDev);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
     // Enable features that you wish to use
@@ -105,7 +107,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[0] = TOC(t);
     
-    //std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
+    std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
 
     TIC(t);
 
@@ -116,8 +118,8 @@ int main(int argc, char *argv[]) {
     
     for(int i = 0; i < number_vectors; i++){
         // Calculate beginning and end of plaintext values
-        begin = i * size_vectors;
-        end = size_vectors * (i + 1);
+        begin = i * ringDim;
+        end = ringDim * (i + 1);
 
         // Encode Plaintext with slot packing and encrypt it into a ciphertext vector
         Plaintext plaintext = cryptoContext->MakePackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
@@ -128,18 +130,18 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[1] = TOC(t);
  
-    //std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
+    std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
     
     TIC(t);
 	    
     // Homomorphic Operations 
 
     // Calculate the Mean
-    Ciphertext<DCRTPoly> negSumCiphertext = calculateSum(cryptoContext, keyPair, ciphertexts, number_rotations, size_vectors);
+    Ciphertext<DCRTPoly> negSumCiphertext = calculateSum(cryptoContext, keyPair, ciphertexts, number_rotations, ringDim);
 
-    std::vector<int64_t> totalVector(size_vectors, total_elements);
+    std::vector<int64_t> totalVector(ringDim, total_elements);
     Plaintext plaintextTotalElems = cryptoContext->MakePackedPlaintext(totalVector);
-    //std::cout << "Lenght of array: " << totalVector.size();
+    std::cout << "Lenght of array: " << totalVector.size();
 
     std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
 
@@ -170,7 +172,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[2] = TOC(t);
  
-    //std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
+    std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
     
     TIC(t);
 
@@ -178,12 +180,11 @@ int main(int argc, char *argv[]) {
     Plaintext plaintextDecAdd;
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
-    plaintextDecAdd->SetLength(size_vectors);
     // Print time spent on decryption
     TOC(t);
     processingTimes[3] = TOC(t);
  
-    //std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
+    std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
     
     TIC(t);
 
@@ -194,14 +195,14 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[4] = TOC(t);
  
-    //std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
+    std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
     
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
-    //std::cout << "Sum value: " << plaintextDecAdd->GetPackedValue()[0];
-   // std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    //std::cout << "Variance: " << variance << std::endl;
+    // std::cout << "Sum value: " << plaintextDecAdd->GetPackedValue()[0];
+    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    std::cout << "Variance: " << variance << std::endl;
 
-    printIntoCSV(processingTimes, total_time, variance);
+    //printIntoCSV(processingTimes, total_time, variance);
 
 }

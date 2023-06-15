@@ -101,38 +101,33 @@ int main(int argc, char *argv[]) {
     }
     /// BIG MODULUS = 7000000462849
     // Header of file contains information about nr of vector and the size of each of them
-    int64_t number_vectors, size_vectors, number;
-    std::vector<int64_t> numbers;
+    int64_t total_elements, number;
+    std::vector<int64_t> all_numbers;
 
-    numbers_file >> number_vectors;
-    numbers_file >> size_vectors;
-
-    int64_t total_elements = size_vectors * number_vectors;
+    numbers_file >> total_elements;
 
     // Body of the file contains all the numbers
     while (numbers_file >> number) {
-        numbers.push_back(number);
+        all_numbers.push_back(number);
     }
-    // Auxiliary Variables for the Pre Processing 
-    int64_t plaintext_modulus = 7000000462849;
-    int64_t alpha = 3398481477433, inverse_alpha = 2279133059052;	
-
-    std::vector<int64_t> pre_processed_numbers;
-    pre_processed_numbers = pre_process_numbers(numbers, alpha, plaintext_modulus);
-    
-    std::vector<int64_t> all_ones(8192, 1);
-    std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
-
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
+    int64_t plaintext_modulus = atol(argv[2]);
+    int64_t ringDim = atoi(argv[3]);
+    float standardDev = atof(argv[4]);
+    
+    int64_t number_vectors = total_elements / ringDim;
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
     parameters.SetPlaintextModulus(plaintext_modulus);
     parameters.SetMultiplicativeDepth(2);
+    parameters.SetSecurityLevel(HEStd_NotSet); // disable security
+    parameters.SetRingDim(ringDim);
+    parameters.SetStandardDeviation(standardDev);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
     // Enable features that you wish to use
@@ -152,11 +147,20 @@ int main(int argc, char *argv[]) {
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
+    // Pre process
+    int64_t alpha = atol(argv[5]), inverse_alpha = atol(argv[6]);
+
+    std::vector<int64_t> pre_processed_numbers;
+    pre_processed_numbers = pre_process_numbers(numbers, alpha, plaintext_modulus);
+    
+    std::vector<int64_t> all_ones(8192, 1);
+    std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
+
     // Print time spent on setup
     TOC(t);
     processingTimes[0] = TOC(t);
     
-    //std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
+    std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
 
     TIC(t);
 
@@ -192,7 +196,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[1] = TOC(t);
  
-    //std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
+    std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
     
     TIC(t);
 	    
@@ -209,8 +213,10 @@ int main(int argc, char *argv[]) {
     Plaintext plaintextTotalElements = cryptoContext->MakeCoefPackedPlaintext(pre_process_numbers(multiply_by, alpha, plaintext_modulus));
     
     // Calculate n*xi
-    auto cipher = cryptoContext->EvalMult(ciphertexts[0], plaintextTotalElements);
-    auto inverted_cipher = cryptoContext->EvalMult(inverted_ciphertexts[0], plaintextTotalElements);
+    for(int i = 0; i < ciphertexts.size(); i++){
+        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], plaintextTotalElements)
+        inverted_ciphertexts[i] = cryptoContext->EvalMult(inverted_ciphertexts[i], plaintextTotalElements)
+    }
 
     // Calculate  (xi - mean)^2
     std::vector<Ciphertext<DCRTPoly>> subCiphertexts;
@@ -218,9 +224,9 @@ int main(int argc, char *argv[]) {
  
     for(int i = 0; i < (int)ciphertexts.size(); i++){
         // Calculate n*xi - sum(x)
-        auto ciphertextSub = cryptoContext->EvalSub(cipher, ciphertextSum);
+        auto ciphertextSub = cryptoContext->EvalSub(ciphertexts[i], ciphertextSum);
 
-        auto invertedCiphertextSub = cryptoContext->EvalSub(inverted_cipher,ciphertextSum); 
+        auto invertedCiphertextSub = cryptoContext->EvalSub(inverted_ciphertexts[i],ciphertextSum); 
 	
         // Square Everything
         subCiphertexts.push_back(cryptoContext->EvalMult(ciphertextSub, invertedCiphertextSub));
@@ -233,7 +239,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[2] = TOC(t);
  
-    //std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
+    std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
     
     TIC(t);
 
@@ -247,7 +253,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[3] = TOC(t);
  
-    //std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
+    std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
     
     TIC(t);
 
@@ -260,13 +266,13 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[4] = TOC(t);
  
-    //std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
+    std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
     
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
     //std::cout <<"Sum: " << variance_sum << std::endl;
-    //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    //std::cout << "Variance: " << variance << std::endl;
+    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    std::cout << "Variance: " << variance << std::endl;
 
-    printIntoCSV(processingTimes, total_time, variance);
+    //printIntoCSV(processingTimes, total_time, variance);
 }

@@ -100,29 +100,47 @@ int main(int argc, char *argv[]) {
     }
 
     // Header of file contains information about nr of vector and the size of each of them
-    int64_t number_vectors, size_vectors, number;
-    std::vector<int64_t> all_number_N, inverted_all_number_N;
+    int64_t total_elements, number;
+    std::vector<int64_t> all_numbers;
 
-    numbers_file >> number_vectors;
-    numbers_file >> size_vectors;
-
-    int64_t total_elements = size_vectors * number_vectors;
+    numbers_file >> total_elements;
 
     // Body of the file contains all the numbers
     while (numbers_file >> number) {
-        all_number_N.push_back(number);
-        inverted_all_number_N.push_back(number);
+        all_numbers.push_back(number);
     }
-
-    reverse(inverted_all_number_N.begin(), inverted_all_number_N.end());
 
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
+    int64_t plaintext_modulus = atol(argv[2]);
+    int64_t ringDim = atoi(argv[3]);
+    float standardDev = atof(argv[4]);
     
-    int64_t plaintext_modulus = 7000000462849;
-    int64_t alpha = 3398481477433, inverse_alpha = 2279133059052;
+    int64_t number_vectors = total_elements / ringDim;
+
+    // Set CryptoContext
+    CCParams<CryptoContextBFVRNS> parameters;
+    parameters.SetPlaintextModulus(plaintext_modulus);
+    parameters.SetMultiplicativeDepth(2);
+    parameters.SetSecurityLevel(HEStd_NotSet); // disable security
+    parameters.SetRingDim(ringDim);
+    parameters.SetStandardDeviation(standardDev);
+
+    // Key Generation
+
+    // Initialize Public Key Containers
+    KeyPair<DCRTPoly> keyPair;
+
+    // Generate a public/private key pair
+    keyPair = cryptoContext->KeyGen();
+
+    // Generate the relinearization key
+    cryptoContext->EvalMultKeyGen(keyPair.secretKey);
+    
+    // Pre Process
+    int64_t alpha = atol(argv[5]), inverse_alpha = atol(argv[6]);
 
     std::vector<int64_t> pre_processed_numbers;
     pre_processed_numbers = pre_process_numbers(all_number_N, alpha, plaintext_modulus);
@@ -137,30 +155,6 @@ int main(int argc, char *argv[]) {
     multiply_by[0] = total_elements * total_elements ;
     std::vector<int64_t> pre_processed_multiply_by = pre_process_numbers(multiply_by, alpha, plaintext_modulus);
 
-
-    // Set CryptoContext
-    CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(plaintext_modulus);
-    parameters.SetMultiplicativeDepth(2);
-
-    CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
-    // Enable features that you wish to use
-    cryptoContext->Enable(PKE);
-    cryptoContext->Enable(KEYSWITCH);
-    cryptoContext->Enable(LEVELEDSHE);
-    cryptoContext->Enable(ADVANCEDSHE);
-
-    // Key Generation
-
-    // Initialize Public Key Containers
-    KeyPair<DCRTPoly> keyPair;
-
-    // Generate a public/private key pair
-    keyPair = cryptoContext->KeyGen();
-
-    // Generate the relinearization key
-    cryptoContext->EvalMultKeyGen(keyPair.secretKey);
-    
     // Print time spent on setup
     TOC(t);
     processingTimes[0] = TOC(t);
@@ -177,8 +171,8 @@ int main(int argc, char *argv[]) {
     
     for(int i = 0; i < number_vectors; i++){
         // Calculate beginning and end of plaintext values
-        begin = i * size_vectors;
-        end = size_vectors * (i + 1);
+        begin = i * ringDim;
+        end = ringDim * (i + 1);
 
         // Create vectors
         std::vector<int64_t> numbers(pre_processed_numbers.begin() + begin, pre_processed_numbers.begin() + end);
@@ -215,8 +209,12 @@ int main(int argc, char *argv[]) {
     ciphertextSquareSum = cryptoContext->EvalSquare(ciphertextSquareSum); // Get square sum * sum
 
     // Calculate the Inner Product
-    // Multiplying both vectors together will calculate the Inner Product value on the last index of the plaintext
-    Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalMult(ciphertexts[0], inverted_ciphertexts[0]);
+    // Multiplying all vectors together will calculate the Inner Product value on the last index of the plaintext
+    for(int i = 0; i < ciphertexts.size(); i++){
+        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], inverted_ciphertexts[i])
+    }
+
+    Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalAddMany(ciphertexts);
 
     ciphertextInnerProduct = cryptoContext->EvalMult(ciphertextInnerProduct, multiply_by_plaintext);
 
@@ -246,7 +244,7 @@ int main(int argc, char *argv[]) {
 
     // Plaintext Operations
     std::vector<int64_t> results = post_process_numbers(plaintextResult->GetCoefPackedValue(), inverse_alpha, plaintext_modulus);
-    double variance = results[size_vectors - 1] / pow(total_elements, 3); 
+    double variance = results[ringDim - 1] / pow(total_elements, 3); 
 
     // Print time spent on plaintext operations
     TOC(t);

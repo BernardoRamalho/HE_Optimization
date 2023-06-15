@@ -36,8 +36,11 @@ Ciphertext<DCRTPoly> calculateSquareSum(CryptoContext<DCRTPoly> cryptoContext, K
 }
 
 Ciphertext<DCRTPoly> calculateInnerProduct(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations){
-    // Start by Multiplying both vectors together
-    Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[0]);
+    for(int i = 0; i < ciphertexts.size(); i++){
+        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], ciphertexts[i])
+    }
+
+    Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalAddMany(ciphertexts);
     
     // Rotate and sum until all values are summed together
     Ciphertext<DCRTPoly> ciphertextRot;

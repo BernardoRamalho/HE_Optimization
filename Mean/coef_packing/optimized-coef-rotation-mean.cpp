@@ -47,31 +47,33 @@ int main(int argc, char *argv[]) {
     }
     
     // Header of file contains information about nr of vector and the size of each of them
-    int64_t number_vectors, size_vectors, number;
+    int64_t total_elements, number;
     std::vector<int64_t> all_numbers;
 
-    numbers_file >> number_vectors;
-    numbers_file >> size_vectors;
-
-    int64_t total_elements = size_vectors * number_vectors;
+    numbers_file >> total_elements;
 
     // Body of the file contains all the numbers
     while (numbers_file >> number) {
         all_numbers.push_back(number);
     }
 
-    // Due to the optimization we can do log(n) - 1 rotations
-    double number_rotations = ceil(log2(size_vectors)) - 1;
-
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
+    int64_t plaintext_modulus = atol(argv[2]);
+    int64_t ringDim = atoi(argv[3]);
+    float standardDev = atof(argv[4]);
+    
+    int64_t number_vectors = total_elements / ringDim;
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(4295049217);
+    parameters.SetPlaintextModulus(plaintext_modulus);
     parameters.SetMultiplicativeDepth(2);
+    parameters.SetSecurityLevel(HEStd_NotSet); // disable security
+    parameters.SetRingDim(ringDim);
+    parameters.SetStandardDeviation(standardDev);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
     // Enable features that you wish to use
@@ -92,6 +94,8 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
     // Generate the rotation plaintexts
+    // Due to the optimization we can do log(n) - 1 rotations
+    double number_rotations = ceil(log2(ringDim)) - 1;
     std::vector<Plaintext> rotation_plaintexts;
     Plaintext plaintextRot;
 
@@ -110,7 +114,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[0] = TOC(t);
     
-    //std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
+    std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
 
     TIC(t);
 
@@ -121,8 +125,8 @@ int main(int argc, char *argv[]) {
     
     for(int i = 0; i < number_vectors; i++){
         // Calculate beginning and end of plaintext values
-        begin = i * size_vectors;
-        end = size_vectors * (i + 1);
+        begin = i * ringDim;
+        end = ringDim * (i + 1);
 
         // Encode Plaintext  with coefficient packing and encrypt it into a ciphertext vector
         Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
@@ -133,7 +137,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[1] = TOC(t);
  
-    //std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
+    std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
     
     TIC(t);
 	    
@@ -151,7 +155,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[2] = TOC(t);
  
-    //std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
+    std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
     
     TIC(t);
 
@@ -164,7 +168,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[3] = TOC(t);
  
-    //std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
+    std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
     
     TIC(t);
 
@@ -179,13 +183,13 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[4] = TOC(t);
  
-    //std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
+    std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
     
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
-  //  std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-//  std::cout << "Mean: " << mean << std::endl;
+    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    std::cout << "Mean: " << mean << std::endl;
 
-    printIntoCSV(processingTimes, total_time, mean);
+    //printIntoCSV(processingTimes, total_time, mean);
 }
