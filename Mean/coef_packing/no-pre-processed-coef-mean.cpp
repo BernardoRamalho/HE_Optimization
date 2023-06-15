@@ -49,13 +49,10 @@ int main(int argc, char *argv[]) {
     }
     
     // Header of file contains information about nr of vector and the size of each of them
-    int64_t number_vectors, size_vectors, number;
+    int64_t total_elements, number;
     std::vector<int64_t> all_numbers;
 
-    numbers_file >> number_vectors;
-    numbers_file >> size_vectors;
-
-    int64_t total_elements = size_vectors * number_vectors;
+    numbers_file >> total_elements;
 
     // Body of the file contains all the numbers
     while (numbers_file >> number) {
@@ -69,6 +66,8 @@ int main(int argc, char *argv[]) {
     int64_t plaintext_modulus = atol(argv[2]);
     int64_t ringDim = atoi(argv[3]);
     float standardDev = atof(argv[4]);
+    
+    int64_t number_vectors = total_elements / ringDim;
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
@@ -97,7 +96,7 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
 
     
-    std::vector<int64_t> all_ones(8192, 1);
+    std::vector<int64_t> all_ones(ringDim, 1);
 
     Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(all_ones);
 
@@ -108,15 +107,14 @@ int main(int argc, char *argv[]) {
     std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
 
     TIC(t);
-
     // Create Plaintexts
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
     int begin, end;
     
     for(int i = 0; i < number_vectors; i++){
         // Calculate beginning and end of plaintext values
-        begin = i * size_vectors;
-        end = size_vectors * (i + 1);
+        begin = i * ringDim;
+        end = ringDim * (i + 1);
 
         // Encode Plaintext  with coefficient packing and encrypt it into a ciphertext vector
         Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
@@ -130,7 +128,6 @@ int main(int argc, char *argv[]) {
     std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
     
     TIC(t);
-	    
     // Homomorphic Operations 
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
 
@@ -154,12 +151,10 @@ int main(int argc, char *argv[]) {
     processingTimes[3] = TOC(t);
  
     std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
-    
     TIC(t);
 
     // Plaintext Operations
     int numberValues = plaintextDec->GetCoefPackedValue().size();
-    
     double mean_sum = plaintextDec->GetCoefPackedValue()[numberValues - 1];
    
     double mean = mean_sum / total_elements; 
