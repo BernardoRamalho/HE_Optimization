@@ -66,32 +66,28 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // Header of file contains information about nr of vector and the size of each of them
-    int64_t number_vectors, size_vectors, number;
-    std::vector<int64_t> all_numbers;
-
-    numbers_file >> number_vectors;
-    numbers_file >> size_vectors;
-
-    int64_t total_elements = size_vectors * number_vectors;
-
     // Body of the file contains all the numbers
     while (numbers_file >> number) {
         all_numbers.push_back(number);
     }
 
-    // Due to the optimization we can do log(n) - 1 rotations
-    double number_rotations = ceil(log2(size_vectors));
-
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
+    int64_t plaintext_modulus = atol(argv[2]);
+    int64_t ringDim = atoi(argv[3]);
+    float standardDev = atof(argv[4]);
+    
+    int64_t number_vectors = total_elements / ringDim;
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(7000000462849);
+    parameters.SetPlaintextModulus(plaintext_modulus);
     parameters.SetMultiplicativeDepth(2);
+    parameters.SetSecurityLevel(HEStd_NotSet); // disable security
+    parameters.SetRingDim(ringDim);
+    parameters.SetStandardDeviation(standardDev);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
     // Enable features that you wish to use
@@ -112,6 +108,8 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
     // Generate the rotation evaluation keys
+    // Due to the optimization we can do log(n) - 1 rotations
+    double number_rotations = ceil(log2(ringDim));
     std::vector<int32_t> rotation_indexes;
     for(int i = 0; i < number_rotations; i++){
        rotation_indexes.push_back(pow(2,i)); // Rotate always in 2^i
@@ -134,8 +132,8 @@ int main(int argc, char *argv[]) {
     
     for(int i = 0; i < number_vectors; i++){
         // Calculate beginning and end of plaintext values
-        begin = i * size_vectors;
-        end = size_vectors * (i + 1);
+        begin = i * ringDim;
+        end = ringDim * (i + 1);
 
         // Encode Plaintext with slot packing and encrypt it into a ciphertext vector
         Plaintext plaintext = cryptoContext->MakePackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
@@ -178,7 +176,6 @@ int main(int argc, char *argv[]) {
     Plaintext plaintextDecAdd;
  
     cryptoContext->Decrypt(keyPair.secretKey, resultCiphertext, &plaintextDecAdd);
-    plaintextDecAdd->SetLength(size_vectors);
 
     // Print time spent on decryption
     TOC(t);
