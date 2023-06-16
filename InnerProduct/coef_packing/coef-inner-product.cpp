@@ -57,9 +57,7 @@ int main(int argc, char *argv[]) {
         all_numbers.push_back(number);
     }
 
-    std::vector<int64_t> inverted_all_numbers = all_numbers;
-    reverse(inverted_all_numbers.begin(), inverted_all_numbers.end()); 
-   
+       
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
@@ -118,7 +116,8 @@ int main(int argc, char *argv[]) {
 
         // Create vectors
         std::vector<int64_t> numbers(all_numbers.begin() + begin, all_numbers.begin() + end);
-        std::vector<int64_t> inverted_numbers(inverted_all_numbers.begin() + begin, inverted_all_numbers.begin() + end);;
+        std::vector<int64_t> inverted_numbers = numbers;
+        reverse(inverted_numbers.begin(), inverted_numbers.end()); 
 
         // Encode Plaintext with coef packing and encrypt it into a ciphertext vector
         Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(numbers);
@@ -157,7 +156,7 @@ int main(int argc, char *argv[]) {
     Plaintext plaintextDecAdd;
   
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &plaintextDecAdd);
-    
+
     // Print time spent on decryption
     TOC(t);
     processingTimes[3] = TOC(t);

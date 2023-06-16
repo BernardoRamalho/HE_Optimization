@@ -136,12 +136,15 @@ int main(int argc, char *argv[]) {
     TIC(t);
 	    
     // Homomorphic Operations 
-    for(int i = 0; i < ciphertexts.size(); i++){
-        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], ciphertexts[i])
+    for(unsigned int i = 0; i < ciphertexts.size(); i++){
+        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], ciphertexts[i]);
     }
 
     Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalAddMany(ciphertexts);
-    
+    Plaintext plaintext;
+  
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintext);
+
     // Rotate and sum until all values are summed together
     Ciphertext<DCRTPoly> ciphertextRot;
     for(int i = 0; i < number_rotations; i++){
@@ -162,7 +165,6 @@ int main(int argc, char *argv[]) {
     Plaintext plaintextDecAdd;
   
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDecAdd);
-    plaintextDecAdd->SetLength(vector_size);
     
     // Print time spent on decryption
     TOC(t);
@@ -171,7 +173,7 @@ int main(int argc, char *argv[]) {
     //std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
 
     // Inner Product value will be in the first element of the plaintext
-    int64_t inner_product = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[vector_size/2];
+    int64_t inner_product = plaintextDecAdd->GetPackedValue()[0];
 
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
