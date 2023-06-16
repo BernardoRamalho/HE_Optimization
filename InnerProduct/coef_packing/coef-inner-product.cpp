@@ -47,57 +47,36 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // Body of file is made of two lines, each representing a vector
-    int64_t number, nr_elements;
-    std::vector<std::vector<int64_t>> vectors;
-    std::string vector_line;
+    // Header of file contains information about nr of vector and the size of each of them
+    int64_t total_elements, number;
+    std::vector<int64_t> all_numbers;
 
-    while(std::getline(numbers_file, vector_line)){
-        // Read the line
-        std::istringstream line(vector_line);
-        
-        // Read a number at a time from the line and store it in a vector
-        std::vector<int64_t> v;
-        while (line >> number) {
-                v.push_back(number);
-        }
-
-        // Save the vector in a 2D vector
-        vectors.push_back(v);
+    numbers_file >> total_elements;
+    // Body of the file contains all the numbers
+    while (numbers_file >> number) {
+        all_numbers.push_back(number);
     }
-    
-    // Due to the optimization we can do log(n) - 1 rotations, instead of n rotations
-    double number_rotations = ceil(log2(vectors[0].size())) - 1;
-    
-    // For that to work, each vector has to be 2^x in size
-    nr_elements = (int)pow(2, number_rotations + 1);
-    int64_t vector_size = vectors[0].size();
 
-    // If the provided vectors are not 2^x size, fille it with zeros until it is
-    if(nr_elements != vector_size){
-      // Generate a vector of zeros with size such that when we append it to the vectors, they will be 2^x in size
-      std::vector<int64_t> zeros(nr_elements - vector_size);
-      
-      // Append the vector of zeros to the original vectors
-      vectors[0].insert(vectors[0].end(), zeros.begin(), zeros.end());
-      vectors[1].insert(vectors[1].end(), zeros.begin(), zeros.end()); 
-      
-      // Set the vector size to the correct value
-      vector_size = nr_elements;
-    }
-    
-    // By reversing the second vector, we don't need to do rotation
-    // Due to how polynomial multiplication works, the inner product value will be at the last index of the plaintext after the multiplication
-
+    std::vector<int64_t> inverted_all_numbers = all_numbers;
+    reverse(inverted_all_numbers.begin(), inverted_all_numbers.end()); 
+   
     TimeVar t;
-    std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0};
+    std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
+    int64_t plaintext_modulus = atol(argv[2]);
+    int64_t ringDim = atoi(argv[3]);
+    float standardDev = atof(argv[4]);
+    
+    int64_t number_vectors = total_elements / ringDim;
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(4295049217);
+    parameters.SetPlaintextModulus(plaintext_modulus);
     parameters.SetMultiplicativeDepth(2);
+    parameters.SetSecurityLevel(HEStd_NotSet); // disable security
+    parameters.SetRingDim(ringDim);
+    parameters.SetStandardDeviation(standardDev);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
 
@@ -118,7 +97,6 @@ int main(int argc, char *argv[]) {
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
 
-    reverse(vectors[1].begin(), vectors[1].end());
     // Print time spent on setup
     TOC(t);
     processingTimes[0] = TOC(t);
@@ -129,14 +107,26 @@ int main(int argc, char *argv[]) {
 
     // Create Plaintexts
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
+    std::vector<Ciphertext<DCRTPoly>> inverted_ciphertexts;
+
+    int begin, end;
     
-    for(int i = 0; i < 2; i++){
-        // Encode Plaintext with coefficient packing
-        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(vectors[i]);
-	plaintext->SetLength(vector_size);
-        
-        // Encrypt it into a ciphertext vector
+    for(int i = 0; i < number_vectors; i++){
+        // Calculate beginning and end of plaintext values
+        begin = i * ringDim;
+        end = ringDim * (i + 1);
+
+        // Create vectors
+        std::vector<int64_t> numbers(all_numbers.begin() + begin, all_numbers.begin() + end);
+        std::vector<int64_t> inverted_numbers(inverted_all_numbers.begin() + begin, inverted_all_numbers.begin() + end);;
+
+        // Encode Plaintext with coef packing and encrypt it into a ciphertext vector
+        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(numbers);
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
+       
+       	Plaintext inverted_plaintext = cryptoContext->MakeCoefPackedPlaintext(inverted_numbers);
+        inverted_ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, inverted_plaintext));
+
     }
 
     // Print time spent on encryption
@@ -147,9 +137,13 @@ int main(int argc, char *argv[]) {
     
     TIC(t);
 	    
-    // Homomorphic Operations 
-    // Multiplying both vectors together will calculate the Inner Product value on the last index of the plaintext
-    Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
+    // Calculate the Inner Product
+    // Multiplying all vectors together will calculate the Inner Product value on the last index of the plaintext
+    for(unsigned int i = 0; i < ciphertexts.size(); i++){
+        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], inverted_ciphertexts[i]);
+    }
+
+    Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalAddMany(ciphertexts);
 
     // Print time spent on homomorphic operations
     TOC(t);
@@ -162,8 +156,7 @@ int main(int argc, char *argv[]) {
     // Decryption
     Plaintext plaintextDecAdd;
   
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDecAdd);
-    plaintextDecAdd->SetLength(vector_size);
+    cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &plaintextDecAdd);
     
     // Print time spent on decryption
     TOC(t);
@@ -172,7 +165,7 @@ int main(int argc, char *argv[]) {
     //std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
 
     // Inner Product value will be in the last element of the plaintext
-    int64_t inner_product = plaintextDecAdd->GetCoefPackedValue()[vector_size - 1];
+    int64_t inner_product = plaintextDecAdd->GetCoefPackedValue()[ringDim - 1];
 
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());

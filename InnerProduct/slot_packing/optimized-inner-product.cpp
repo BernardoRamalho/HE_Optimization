@@ -47,54 +47,34 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // Body of file is made of two lines, each representing a vector
-    int64_t number, nr_elements;
-    std::vector<std::vector<int64_t>> vectors;
-    std::string vector_line;
+    // Header of file contains information about nr of vector and the size of each of them
+    int64_t total_elements, number;
+    std::vector<int64_t> all_numbers;
 
-    while(std::getline(numbers_file, vector_line)){
-        // Read the line
-        std::istringstream line(vector_line);
-        
-        // Read a number at a time from the line and store it in a vector
-        std::vector<int64_t> v;
-        while (line >> number) {
-                v.push_back(number);
-        }
+    numbers_file >> total_elements;
 
-        // Save the vector in a 2D vector
-        vectors.push_back(v);
-    }
-    
-    // Due to the optimization we can do log(n) - 1 rotations, instead of n rotations
-    double number_rotations = ceil(log2(vectors[0].size())) - 1;
-    
-    // For that to work, each vector has to be 2^x in size
-    nr_elements = (int)pow(2, number_rotations + 1);
-    int64_t vector_size = vectors[0].size();
-
-    // If the provided vectors are not 2^x size, fille it with zeros until it is
-    if(nr_elements != vector_size){
-      // Generate a vector of zeros with size such that when we append it to the vectors, they will be 2^x in size
-      std::vector<int64_t> zeros(nr_elements - vector_size);
-      
-      // Append the vector of zeros to the original vectors
-      vectors[0].insert(vectors[0].end(), zeros.begin(), zeros.end());
-      vectors[1].insert(vectors[1].end(), zeros.begin(), zeros.end()); 
-      
-      // Set the vector size to the correct value
-      vector_size = nr_elements;
+    // Body of the file contains all the numbers
+    while (numbers_file >> number) {
+        all_numbers.push_back(number);
     }
 
     TimeVar t;
-    std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0};
+    std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
+    int64_t plaintext_modulus = atol(argv[2]);
+    int64_t ringDim = atoi(argv[3]);
+    float standardDev = atof(argv[4]);
+    
+    int64_t number_vectors = total_elements / ringDim;
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
-    parameters.SetPlaintextModulus(4295049217);
+    parameters.SetPlaintextModulus(plaintext_modulus);
     parameters.SetMultiplicativeDepth(2);
+    parameters.SetSecurityLevel(HEStd_NotSet); // disable security
+    parameters.SetRingDim(ringDim);
+    parameters.SetStandardDeviation(standardDev);
 
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
     // Enable features that you wish to use
@@ -115,12 +95,14 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
     // Generate the rotation evaluation keys
+    // Due to the optimization we can do log(n) - 1 rotations
+    double number_rotations = ceil(log2(ringDim));
     std::vector<int32_t> rotation_indexes;
     for(int i = 0; i < number_rotations; i++){
-       rotation_indexes.push_back(pow(2,i)); 
+       rotation_indexes.push_back(pow(2,i)); // Rotate always in 2^i
     }
 
-    cryptoContext->EvalRotateKeyGen(keyPair.secretKey,rotation_indexes);    
+    cryptoContext->EvalRotateKeyGen(keyPair.secretKey, rotation_indexes);    
     
     // Print time spent on setup
     TOC(t);
@@ -133,15 +115,18 @@ int main(int argc, char *argv[]) {
     // Create Plaintexts
     std::vector<Ciphertext<DCRTPoly>> ciphertexts;
     
-    for(int i = 0; i < 2; i++){
-        // Encode Plaintext with slot packing
-        Plaintext plaintext = cryptoContext->MakePackedPlaintext(vectors[i]);
-	plaintext->SetLength(vector_size);
+    int begin, end;
+    
+    for(int i = 0; i < number_vectors; i++){
+        // Calculate beginning and end of plaintext values
+        begin = i * ringDim;
+        end = ringDim * (i + 1);
 
-        // Encrypt it into a ciphertext vector
+        // Encode Plaintext with slot packing and encrypt it into a ciphertext vector
+        Plaintext plaintext = cryptoContext->MakePackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
-
+    
     // Print time spent on encryption
     TOC(t);
     processingTimes[1] = TOC(t);
@@ -151,8 +136,11 @@ int main(int argc, char *argv[]) {
     TIC(t);
 	    
     // Homomorphic Operations 
-    // Start by Multiplying both vectors together
-    Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalMult(ciphertexts[0], ciphertexts[1]);
+    for(int i = 0; i < ciphertexts.size(); i++){
+        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], ciphertexts[i])
+    }
+
+    Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalAddMany(ciphertexts);
     
     // Rotate and sum until all values are summed together
     Ciphertext<DCRTPoly> ciphertextRot;
