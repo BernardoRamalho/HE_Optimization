@@ -1,11 +1,14 @@
 from sympy import *
+import decimal
 
-n = 7000000189057
-m = 916371537920000000000*2
- 
+n = 8192 * 2
+m = 229092884480049137.000
+decimal.setcontext(decimal.Context(prec=15))
+
 while(true):
     m +=1
-    if(isprime(m) and ((m - 1) / 16384).is_integer()):
+    x = decimal.Decimal((m - 1) / n)
+    if(isprime(m) and ((m - 1) / n).is_integer()):
         print(m)
         break
 
