@@ -63,9 +63,13 @@ int main(int argc, char *argv[]) {
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
+    std::cout << "Parameters:\n"; 
     int64_t plaintext_modulus = atol(argv[2]);
+    std::cout << plaintext_modulus << std::endl;
     int64_t ringDim = atoi(argv[3]);
+    std::cout << ringDim << std::endl;
     float standardDev = atof(argv[4]);
+    std::cout << standardDev << std::endl;
     
     int64_t number_vectors = total_elements / ringDim;
 
@@ -96,6 +100,7 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
     // Generate the rotation evaluation keys
+    double number_rotations = ceil(log2(ringDim)) - 1;
     std::vector<int32_t> rotation_indexes;
     for(int i = 0; i < number_rotations; i++){
        rotation_indexes.push_back(pow(2,i)); // Rotate always in 2^i

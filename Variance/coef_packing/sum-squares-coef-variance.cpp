@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
     int64_t alpha = atol(argv[5]), inverse_alpha = atol(argv[6]);
 
     std::vector<int64_t> pre_processed_numbers;
-    pre_processed_numbers = pre_process_numbers(numbers, alpha, plaintext_modulus);
+    pre_processed_numbers = pre_process_numbers(all_numbers, alpha, plaintext_modulus);
     
     std::vector<int64_t> all_ones(8192, 1);
     std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
@@ -172,12 +172,13 @@ int main(int argc, char *argv[]) {
     
     for(int i = 0; i < number_vectors; i++){
         // Calculate beginning and end of plaintext values
-        begin = i * size_vectors;
-        end = size_vectors * (i + 1);
+        begin = i * ringDim;
+        end = ringDim * (i + 1);
 
         // Create vectors
         std::vector<int64_t> values(pre_processed_numbers.begin() + begin, pre_processed_numbers.begin() + end);
-        std::vector<int64_t> inverted_numbers = numbers;
+        std::vector<int64_t> inverted_numbers(all_numbers.begin() + begin, all_numbers.begin() + end);
+
         reverse(inverted_numbers.begin(), inverted_numbers.end());
 
         inverted_numbers = pre_process_numbers(inverted_numbers, alpha, plaintext_modulus);
@@ -213,9 +214,9 @@ int main(int argc, char *argv[]) {
     Plaintext plaintextTotalElements = cryptoContext->MakeCoefPackedPlaintext(pre_process_numbers(multiply_by, alpha, plaintext_modulus));
     
     // Calculate n*xi
-    for(int i = 0; i < ciphertexts.size(); i++){
-        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], plaintextTotalElements)
-        inverted_ciphertexts[i] = cryptoContext->EvalMult(inverted_ciphertexts[i], plaintextTotalElements)
+    for(unsigned int i = 0; i < ciphertexts.size(); i++){
+        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], plaintextTotalElements);
+        inverted_ciphertexts[i] = cryptoContext->EvalMult(inverted_ciphertexts[i], plaintextTotalElements);
     }
 
     // Calculate  (xi - mean)^2
@@ -247,7 +248,6 @@ int main(int argc, char *argv[]) {
     Plaintext plaintextDec;
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDec);
-    plaintextDec->SetLength(size_vectors);
 
     // Print time spent on decryption
     TOC(t);

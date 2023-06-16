@@ -20,14 +20,15 @@ using namespace lbcrypto;
 */
 int main(int argc, char *argv[]) {
     // Auxiliary Variables for the Pre Processing 
-    auto plaintext_modulus = std::stol(argv[1]);
+    uint64_t plaintext_modulus = 5865951068471297;
     std::cout << "Modulus: " << plaintext_modulus << std::endl;	
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
     parameters.SetPlaintextModulus(plaintext_modulus);
     parameters.SetMultiplicativeDepth(atoi(argv[2]));
-
+parameters.SetSecurityLevel(HEStd_NotSet); // disable security
+parameters.SetRingDim( atoi(argv[3]) );
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
     // Enable features that you wish to use
     cryptoContext->Enable(PKE);
@@ -43,21 +44,33 @@ int main(int argc, char *argv[]) {
     // Generate a public/private key pair
     keyPair = cryptoContext->KeyGen();
 
+    // Generate rotation vectors
+    Plaintext plaintextRot;
+
+        // Create vector of size 8192 filled with 0
+    std::vector<int64_t> rotationVector(atoi(argv[3]), 0);
+
+        // Rotating by 2^i --> element @ index 2^i = 1
+    rotationVector[1] = 1;
+
+        // Encrypt using Coefficient Packing
+        plaintextRot = cryptoContext->MakeCoefPackedPlaintext(rotationVector);
+
     // Generate the relinearization key
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     auto n = cryptoContext->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder() / 2;
 	std::cout << "Size: " << n << std::endl;
 
 	std::vector<int64_t> vec(n, 1);
-
-	Plaintext p = cryptoContext->MakePackedPlaintext(vec);
+        vec[0] = 2;
+	Plaintext p = cryptoContext->MakeCoefPackedPlaintext(vec);
 
 	auto c = cryptoContext->Encrypt(keyPair.publicKey, p);
 
-        c = cryptoContext->EvalAdd(c, c);
+        c = cryptoContext->EvalMult(c, plaintextRot);
 
 	cryptoContext->Decrypt(keyPair.secretKey, c, &p);
 
-	std::cout << p->GetPackedValue().size() << std::endl;
+	std::cout << p->GetCoefPackedValue() << std::endl;
 
 }

@@ -104,12 +104,14 @@ int main(int argc, char *argv[]) {
     std::vector<int64_t> all_numbers;
 
     numbers_file >> total_elements;
-
     // Body of the file contains all the numbers
     while (numbers_file >> number) {
         all_numbers.push_back(number);
     }
 
+    std::vector<int64_t> inverted_all_numbers = all_numbers;
+    reverse(inverted_all_numbers.begin(), inverted_all_numbers.end()); 
+   
     TimeVar t;
     std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
 
@@ -128,6 +130,13 @@ int main(int argc, char *argv[]) {
     parameters.SetRingDim(ringDim);
     parameters.SetStandardDeviation(standardDev);
 
+    CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
+    // Enable features that you wish to use
+    cryptoContext->Enable(PKE);
+    cryptoContext->Enable(KEYSWITCH);
+    cryptoContext->Enable(LEVELEDSHE);
+    cryptoContext->Enable(ADVANCEDSHE);
+    
     // Key Generation
 
     // Initialize Public Key Containers
@@ -143,10 +152,10 @@ int main(int argc, char *argv[]) {
     int64_t alpha = atol(argv[5]), inverse_alpha = atol(argv[6]);
 
     std::vector<int64_t> pre_processed_numbers;
-    pre_processed_numbers = pre_process_numbers(all_number_N, alpha, plaintext_modulus);
+    pre_processed_numbers = pre_process_numbers(all_numbers, alpha, plaintext_modulus);
 
     std::vector<int64_t> pre_processed_inverted_numbers;
-    pre_processed_inverted_numbers = pre_process_numbers(inverted_all_number_N, alpha, plaintext_modulus);
+    pre_processed_inverted_numbers = pre_process_numbers(inverted_all_numbers, alpha, plaintext_modulus);
     
     std::vector<int64_t> all_ones(8192, 1);
     std::vector<int64_t> pre_processed_all_ones = pre_process_numbers(all_ones, alpha, plaintext_modulus);
@@ -210,8 +219,8 @@ int main(int argc, char *argv[]) {
 
     // Calculate the Inner Product
     // Multiplying all vectors together will calculate the Inner Product value on the last index of the plaintext
-    for(int i = 0; i < ciphertexts.size(); i++){
-        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], inverted_ciphertexts[i])
+    for(unsigned int i = 0; i < ciphertexts.size(); i++){
+        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], inverted_ciphertexts[i]);
     }
 
     Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalAddMany(ciphertexts);

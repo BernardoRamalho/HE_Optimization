@@ -36,8 +36,8 @@ Ciphertext<DCRTPoly> calculateSquareSum(CryptoContext<DCRTPoly> cryptoContext, K
 }
 
 Ciphertext<DCRTPoly> calculateInnerProduct(CryptoContext<DCRTPoly> cryptoContext, KeyPair<DCRTPoly> keyPair, std::vector<Ciphertext<DCRTPoly>> ciphertexts, int64_t number_rotations){
-    for(int i = 0; i < ciphertexts.size(); i++){
-        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], ciphertexts[i])
+    for(unsigned int i = 0; i < ciphertexts.size(); i++){
+        ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], ciphertexts[i]);
     }
 
     Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalAddMany(ciphertexts);
@@ -65,6 +65,12 @@ int main(int argc, char *argv[]) {
              << argv[1] << "'" << std::endl;
         return EXIT_FAILURE;
     }
+
+    // Header of file contains information about nr of vector and the size of each of them
+    int64_t total_elements, number;
+    std::vector<int64_t> all_numbers;
+
+    numbers_file >> total_elements;
 
     // Body of the file contains all the numbers
     while (numbers_file >> number) {
