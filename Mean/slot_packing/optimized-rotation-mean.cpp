@@ -15,13 +15,13 @@
 
 using namespace lbcrypto;
 
-void printIntoCSV(std::vector<double> processingTimes, double total_time, double mean){
+void printIntoCSV(std::vector<double> processingTimes, double total_time, double mean, std::string name){
     // Open the file
     std::string filePath;
 
-    std::ofstream meanCSV("timeCSVs/1000mean.csv", std::ios_base::app);
+    std::ofstream meanCSV("timeCSVs/ringDimOptimization.csv", std::ios_base::app);
     
-    meanCSV << "opt-rot-slot, ";
+    meanCSV << name << ", ";
 
     for(unsigned int i = 0; i < processingTimes.size(); i++){
         meanCSV << processingTimes[i] << ", ";
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[0] = TOC(t);
     
-    std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
+    //std::cout << "Duration of setup: " << processingTimes[0] << "ms" << std::endl;
 
     TIC(t);
 
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[1] = TOC(t);
  
-    std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
+    //std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
     
     TIC(t);
 	    
@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[2] = TOC(t);
  
-    std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
+    //std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
     
     TIC(t);
 
@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[3] = TOC(t);
  
-    std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
+    //std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
     
     TIC(t);
 
@@ -175,13 +175,13 @@ int main(int argc, char *argv[]) {
     TOC(t);
     processingTimes[4] = TOC(t);
  
-    std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
+    //std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
     
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
-    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    std::cout << "Mean: " << mean << std::endl;
+    //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    //std::cout << "Mean: " << mean << std::endl;
     
-    //printIntoCSV(processingTimes, total_time, mean);
+    printIntoCSV(processingTimes, total_time, mean, argv[5]);
 }
