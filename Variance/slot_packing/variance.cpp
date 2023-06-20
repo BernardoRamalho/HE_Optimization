@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     
     // Generate the rotation evaluation keys
-    double number_rotations = ceil(log2(ringDim)) - 1;
+    double number_rotations = ceil(log2(ringDim));
     std::vector<int32_t> rotation_indexes;
     for(int i = 0; i < number_rotations; i++){
        rotation_indexes.push_back(pow(2,i)); // Rotate always in 2^i
@@ -140,9 +140,13 @@ int main(int argc, char *argv[]) {
     TIC(t);
 	    
     // Homomorphic Operations 
+Plaintext plaintextDec;
+ 
 
     // Calculate the Mean
     Ciphertext<DCRTPoly> negSumCiphertext = calculateSum(cryptoContext, keyPair, ciphertexts, number_rotations, ringDim);
+    cryptoContext->Decrypt(keyPair.secretKey, negSumCiphertext, &plaintextDec);
+    std::cout << plaintextDec->GetPackedValue() << std::endl;
 
     std::vector<int64_t> totalVector(ringDim, total_elements);
     Plaintext plaintextTotalElems = cryptoContext->MakePackedPlaintext(totalVector);
@@ -164,7 +168,6 @@ int main(int argc, char *argv[]) {
 
     // Calculate sum((xi - mean)^2)
     auto ciphertextAdd = cryptoContext->EvalAddMany(subCiphertexts);
-
     auto ciphertextRot = ciphertextAdd;
 
     for(int i = 0; i < number_rotations; i++){
@@ -190,10 +193,12 @@ int main(int argc, char *argv[]) {
     processingTimes[3] = TOC(t);
  
     std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
-    
     TIC(t);
 
     // Plaintext Operations
+    unsigned long long cubic_total_elements = total_elements * total_elements * total_elements;
+    std::cout << cubic_total_elements << std::endl;
+    std::cout << pow(total_elements, 3) << std::endl;
     double variance = plaintextDecAdd->GetPackedValue()[0] / pow(total_elements, 3); 
    
     // Print time spent on plaintext operations
