@@ -1,11 +1,11 @@
 from sympy import *
 
-n = 8192.0 * 2
-m = 1832740000000000079.0
+n = 4096
+m = 4096 * 2
 
 while(true):
     m +=1
-    if(isprime(m) and ((m - 1) / n).is_integer()):
+    if(isprime(m) and ((m - 1) / (n*2)).is_integer()):
         print(m)
         break
 
