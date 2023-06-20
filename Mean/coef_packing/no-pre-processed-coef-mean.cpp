@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
     int numberValues = plaintextDec->GetCoefPackedValue().size();
     double mean_sum = plaintextDec->GetCoefPackedValue()[numberValues - 1];
    
-    double mean = mean_sum / total_elements; 
+    //double mean = mean_sum / total_elements; 
 
     // Print time spent on plaintext operations
     TOC(t);
@@ -168,8 +168,8 @@ int main(int argc, char *argv[]) {
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
-    //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    //std::cout << "Mean: " << mean << std::endl;
+    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    std::cout << "Sum: " << mean_sum << std::endl;
 
-    printIntoCSV(processingTimes, total_time, mean, argv[5]);
+    //printIntoCSV(processingTimes, total_time, mean, argv[5]);
 }
