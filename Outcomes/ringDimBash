@@ -1,270 +1,107 @@
 #
-# 16 values
+# 8192 values
 #
 
-python3 generate_numbers.py 16
+python3 generate_numbers.py 8192
 
 # Coef SUM 
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 97 2 3.2 n16-coef-sum-2; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 97 4 3.2 n16-coef-sum-4; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 97 8 3.2 n16-coef-sum-8; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 97 16 3.2 n16-coef-sum-16; done
+for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 65537 512 4.3 n8192-coef-sum-512; done
 
 # Slot Sum
-for i in {1..100}; do ./optimized-rotation-mean number.txt 97 2 3.2 n16-slot-sum-2; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 97 4 3.2 n16-slot-sum-4; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 97 8 3.2 n16-slot-sum-8; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 97 16 3.2 n16-slot-sum-16; done
+for i in {1..100}; do ./optimized-rotation-mean number.txt 65537 512 3.2 n8192-slot-sum-512; done
 
 # Coef Inner
-for i in {1..100}; do ./optimized-inner-product number.txt 97 2 3.2 n16-slot-inner-2; done
-for i in {1..100}; do ./optimized-inner-product number.txt 97 4 3.2 n16-slot-inner-4; done
-for i in {1..100}; do ./optimized-inner-product number.txt 97 8 3.2 n16-slot-inner-8; done
-for i in {1..100}; do ./optimized-inner-product number.txt 97 16 3.2 n16-slot-inner-16; done
+for i in {1..100}; do ./optimized-inner-product number.txt 65537 512 3.2 n8192-slot-inner-512; done
 
 # Slot Inner
-for i in {1..100}; do ./coef-inner-product number.txt 97 2 3.2 n16-coef-inner-2; done
-for i in {1..100}; do ./coef-inner-product number.txt 97 4 3.2 n16-coef-inner-4; done
-for i in {1..100}; do ./coef-inner-product number.txt 97 8 3.2 n16-coef-inner-8; done
-for i in {1..100}; do ./coef-inner-product number.txt 97 16 3.2 n16-coef-inner-16; done
+for i in {1..100}; do ./coef-inner-product number.txt 65537 512 3.2 n8192-coef-inner-512; done
 
 #
-# 32 values
+# 409600 values
 #
 
-python3 generate_numbers.py 32
+python3 generate_numbers.py 409600
 
 # Coef SUM 
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 193 4 3.2 n32-coef-sum-4; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 193 8 3.2 n32-coef-sum-8; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 193 16 3.2 n32-coef-sum-16; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 193 32 3.2 n32-coef-sum-32; done
+for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 1032193 512 3.2 n50x8192-coef-sum-512; done
 
 # Slot Sum
-for i in {1..100}; do ./optimized-rotation-mean number.txt 193 4 3.2 n32-slot-sum-4; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 193 8 3.2.2 n32-slot-sum-8; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 193 16 3.2 n32-slot-sum-16; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 193 32 3.2 n32-slot-sum-32; done
+for i in {1..100}; do ./optimized-rotation-mean number.txt 1032193 512 3.2 n50x8192-slot-sum-512; done
 
 # Coef Inner
-for i in {1..100}; do ./optimized-inner-product number.txt 193 4 3.2 n32-slot-inner-4; done
-for i in {1..100}; do ./optimized-inner-product number.txt 193 8 3.2.2 n32-slot-inner-8; done
-for i in {1..100}; do ./optimized-inner-product number.txt 193 16 3.2 n32-slot-inner-16; done
-for i in {1..100}; do ./optimized-inner-product number.txt 193 32 3.2 n32-slot-inner-32; done
+for i in {1..100}; do ./optimized-inner-product number.txt 1376257 512 3.2 n50x8192-slot-inner-512; done
 
 # Slot Inner
-for i in {1..100}; do ./coef-inner-product number.txt 193 4 3.2 n32-coef-inner-4; done
-for i in {1..100}; do ./coef-inner-product number.txt 193 8 3.2.2 n32-coef-inner-8; done
-for i in {1..100}; do ./coef-inner-product number.txt 193 16 3.2 n32-coef-inner-16; done
-for i in {1..100}; do ./coef-inner-product number.txt 193 32 3.2 n32-coef-inner-32; done
+for i in {1..100}; do ./coef-inner-product number.txt 1376257 512 3.2 n50x8192-coef-inner-512; done
 
 #
-# 64 values
+# 819200 values
 #
 
-python3 generate_numbers.py 64
+python3 generate_numbers.py 819200
 
 # Coef SUM 
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 257 64 3.2 n64-coef-sum-64; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 257 32 3.2 n64-coef-sum-32; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 257 16 3.2 n64-coef-sum-16; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 257 8 3.2 n64-coef-sum-8; done
+for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 1720321 512 3.2 n100x8192-coef-sum-512; done
 
 # Slot Sum
-for i in {1..100}; do ./optimized-rotation-mean number.txt 257 64 3.2 n64-slot-sum-64; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 257 32 3.2 n64-slot-sum-32; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 257 16 3.2 n64-slot-sum-2048; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 257 8 3.2 n64-slot-sum-8; done
+for i in {1..100}; do ./optimized-rotation-mean number.txt 1720321 512 3.2 n100x8192-slot-sum-512; done
 
 # Coef Inner
-for i in {1..100}; do ./optimized-inner-product number.txt 257 64 3.2 n64-slot-inner-64; done
-for i in {1..100}; do ./optimized-inner-product number.txt 257 32 3.2 n64-slot-inner-32; done
-for i in {1..100}; do ./optimized-inner-product number.txt 257 16 3.2 n64-slot-inner-16; done
-for i in {1..100}; do ./optimized-inner-product number.txt 257 8 3.2 n64-slot-inner-8; done
+for i in {1..100}; do ./optimized-inner-product number.txt 2752513 512 3.2 n100x8192-slot-inner-512; done
 
 # Slot Inner
-for i in {1..100}; do ./coef-inner-product number.txt 257 64 3.2 n64-coef-inner-64; done
-for i in {1..100}; do ./coef-inner-product number.txt 257 32 3.2 n64-coef-inner-32; done
-for i in {1..100}; do ./coef-inner-product number.txt 257 16 3.2 n64-coef-inner-16; done
-for i in {1..100}; do ./coef-inner-product number.txt 257 8 3.2 n64-coef-inner-8; done
+for i in {1..100}; do ./coef-inner-product number.txt 2752513 512 3.2 n100x8192-coef-inner-512; done
 
 #
-# 128 values
+# 2048000 values
 #
 
-python3 generate_numbers.py 128
+python3 generate_numbers.py 2048000
 
 # Coef SUM 
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 769 128 3.2 n128-coef-sum-128; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 769 64 3.2 n128-coef-sum-64; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 769 32 3.2 n128-coef-sum-32; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 769 16 3.2 n128-coef-sum-1024; done
+for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 4423681 512 3.2 n250x8192-coef-sum-512; done
 
 # Slot Sum
-for i in {1..100}; do ./optimized-rotation-mean number.txt 769 128 3.2 n128-slot-sum-128; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 769 64 3.2 n128-slot-sum-64; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 769 32 3.2 n128-slot-sum-32; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 769 16 3.2 n128-slot-sum-16; done
+for i in {1..100}; do ./optimized-rotation-mean number.txt 4423681 512 3.2 n250x8192-slot-sum-512; done
 
 # Coef Inner
-for i in {1..100}; do ./optimized-inner-product number.txt 769 128 3.2 n128-slot-inner-128; done
-for i in {1..100}; do ./optimized-inner-product number.txt 769 64 3.2 n128-slot-inner-64; done
-for i in {1..100}; do ./optimized-inner-product number.txt 769 32 3.2 n128-slot-inner-32; done
-for i in {1..100}; do ./optimized-inner-product number.txt 769 16 3.2 n128-slot-inner-16; done
+for i in {1..100}; do ./optimized-inner-product number.txt 6946817 512 3.2 n250x8192-slot-inner-512; done
 
 # Slot Inner
-for i in {1..100}; do ./coef-inner-product number.txt 769 128 3.2 n128-coef-inner-128; done
-for i in {1..100}; do ./coef-inner-product number.txt 769 64 3.2 n128-coef-inner-64; done
-for i in {1..100}; do ./coef-inner-product number.txt 769 32 3.2 n128-coef-inner-32; done
-for i in {1..100}; do ./coef-inner-product number.txt 769 16 3.2 n128-coef-inner-16; done
+for i in {1..100}; do ./coef-inner-product number.txt 6946817 512 3.2 n250x8192-coef-inner-512; done
 
 #
-# 256 values
+# 4096000 values
 #
 
-python3 generate_numbers.py 256
+python3 generate_numbers.py 4096000
 
 # Coef SUM 
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 7681 256 3.2 n256-coef-sum-256; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 7681 128 3.2 n256-coef-sum-128; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 7681 64 3.2 n256-coef-sum-64; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 7681 32 3.2 n256-coef-sum-32; done
+for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 8257537 512 3.2 n500x8192-coef-sum-512; done
 
 # Slot Sum
-for i in {1..100}; do ./optimized-rotation-mean number.txt 7681 256 3.2 n256-slot-sum-256; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 7681 128 3.2 n256-slot-sum-128; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 7681 64 3.2 n256-slot-sum-64; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 7681 32 3.2 n256-slot-sum-32; done
+for i in {1..100}; do ./optimized-rotation-mean number.txt 8257537 512 3.2 n500x8192-slot-sum-512; done
 
 # Coef Inner
-for i in {1..100}; do ./optimized-inner-product number.txt 7681 256 3.2 n256-slot-inner-256; done
-for i in {1..100}; do ./optimized-inner-product number.txt 7681 128 3.2 n256-slot-inner-128; done
-for i in {1..100}; do ./optimized-inner-product number.txt 7681 64 3.2 n256-slot-inner-64; done
-for i in {1..100}; do ./optimized-inner-product number.txt 7681 32 3.2 n256-slot-inner-32; done
+for i in {1..100}; do ./optimized-inner-product number.txt 13664257 512 3.2 n500x8192-slot-inner-512; done
 
 # Slot Inner
-for i in {1..100}; do ./coef-inner-product number.txt 7681 256 3.2 n256-coef-inner-256; done
-for i in {1..100}; do ./coef-inner-product number.txt 7681 128 3.2 n256-coef-inner-128; done
-for i in {1..100}; do ./coef-inner-product number.txt 7681 64 3.2 n256-coef-inner-64; done
-for i in {1..100}; do ./coef-inner-product number.txt 7681 32 3.2 n256-coef-inner-32; done
+for i in {1..100}; do ./coef-inner-product number.txt 13664257 512 3.2 n500x8192-coef-inner-512; done
 
 #
-# 512 values
+# 8192000 values
 #
 
-python3 generate_numbers.py 512
+python3 generate_numbers.py 8192000
 
 # Coef SUM 
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 512 3.2 n512-coef-sum-512; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 256 3.2 n512-coef-sum-256; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 128 3.2 n512-coef-sum-128; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 64 3.2 n512-coef-sum-64; done
+for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 16465921 512 3.2 n1000x8192-coef-sum-512; done
 
 # Slot Sum
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 512 3.2 n512-slot-sum-512; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 256 3.2 n512-slot-sum-256; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 128 3.2 n512-slot-sum-128; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 64 3.2 n512-slot-sum-64; done
+for i in {1..100}; do ./optimized-rotation-mean number.txt 16465921 512 3.2 n1000x8192-slot-sum-512; done
 
 # Coef Inner
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 512 3.2 n512-slot-inner-512; done
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 256 3.2 n512-slot-inner-256; done
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 128 3.2 n512-slot-inner-128; done
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 64 3.2 n512-slot-inner-64; done
+for i in {1..100}; do ./optimized-inner-product number.txt 27328513 512 3.2 n1000x8192-slot-inner-512; done
 
 # Slot Inner
-for i in {1..100}; do ./coef-inner-product number.txt 12289 512 3.2 n512-coef-inner-512; done
-for i in {1..100}; do ./coef-inner-product number.txt 12289 256 3.2 n512-coef-inner-256; done
-for i in {1..100}; do ./coef-inner-product number.txt 12289 128 3.2 n512-coef-inner-128; done
-for i in {1..100}; do ./coef-inner-product number.txt 12289 64 3.2 n512-coef-inner-64; done
-
-#
-# 1024 values
-#
-
-python3 generate_numbers.py 1024
-
-# Coef SUM 
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 1024 3.2 n1024-coef-sum-1024; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 512 3.2 n1024-coef-sum-512; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 256 3.2 n1024-coef-sum-256; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 128 3.2 n1024-coef-sum-128; done
-
-# Slot Sum
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 1024 3.2 n1024-slot-sum-1024; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 512 3.2 n1024-slot-sum-512; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 256 3.2 n1024-slot-sum-256; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 128 3.2 n1024-slot-sum-128; done
-
-# Coef Inner
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 1024 3.2 n1024-slot-inner-1024; done
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 512 3.2 n1024-slot-inner-512; done
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 256 3.2 n1024-slot-inner-256; done
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 128 3.2 n1024-slot-inner-128; done
-
-# Slot Inner
-for i in {1..100}; do ./coef-inner-product number.txt 12289 1024 3.2 n1024-coef-inner-1024; done
-for i in {1..100}; do ./coef-inner-product number.txt 12289 512 3.2 n1024-coef-inner-512; done
-for i in {1..100}; do ./coef-inner-product number.txt 12289 256 3.2 n1024-coef-inner-256; done
-for i in {1..100}; do ./coef-inner-product number.txt 12289 128 3.2 n1024-coef-inner-128; done
-
-#
-# 2048 values
-#
-
-python3 generate_numbers.py 2048
-
-# Coef SUM 
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 2048 3.2 n2048-coef-sum-2048; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 1024 3.2 n2048-coef-sum-1024; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 512 3.2 n2048-coef-sum-512; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 12289 256 3.2 n2048-coef-sum-256; done
-
-# Slot Sum
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 2048 3.2 n2048-slot-sum-2048; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 1024 3.2 n2048-slot-sum-1024; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 512 3.2 n2048-slot-sum-512; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 12289 256 3.2 n2048-slot-sum-256; done
-
-# Coef Inner
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 2048 3.2 n2048-slot-inner-2048; done
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 1024 3.2 n2048-slot-inner-1024; done
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 512 3.2 n2048-slot-inner-512; done
-for i in {1..100}; do ./optimized-inner-product number.txt 12289 256 3.2 n2048-slot-inner-256; done
-
-# Slot Inner
-for i in {1..100}; do ./coef-inner-product number.txt 12289 2048 3.2 n2048-coef-inner-2048; done
-for i in {1..100}; do ./coef-inner-product number.txt 12289 1024 3.2 n2048-coef-inner-1024; done
-for i in {1..100}; do ./coef-inner-product number.txt 12289 512 3.2 n2048-coef-inner-512; done
-for i in {1..100}; do ./coef-inner-product number.txt 12289 256 3.2 n2048-coef-inner-256; done
-
-#
-# 4096 values
-#
-
-python3 generate_numbers.py 4096
-
-# Coef SUM 
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 40961 4096 3.2 n4096-coef-sum-4096; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 40961 2048 3.2 n4096-coef-sum-2048; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 40961 1024 3.2 n4096-coef-sum-1024; done
-for i in {1..100}; do ./no-pre-processed-coef-mean number.txt 40961 512 3.2 n4096-coef-sum-512; done
-
-# Slot Sum
-for i in {1..100}; do ./optimized-rotation-mean number.txt 40961 4096 3.2 n4096-slot-sum-4096; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 40961 2048 3.2 n4096-slot-sum-2048; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 40961 1024 3.2 n4096-slot-sum-1024; done
-for i in {1..100}; do ./optimized-rotation-mean number.txt 40961 512 3.2 n4096-slot-sum-512; done
-
-# Coef Inner
-for i in {1..100}; do ./optimized-inner-product number.txt 40961 4096 3.2 n4096-slot-inner-4096; done
-for i in {1..100}; do ./optimized-inner-product number.txt 40961 2048 3.2 n4096-slot-inner-2048; done
-for i in {1..100}; do ./optimized-inner-product number.txt 40961 1024 3.2 n4096-slot-inner-1024; done
-for i in {1..100}; do ./optimized-inner-product number.txt 40961 512 3.2 n4096-slot-inner-512; done
-
-# Slot Inner
-for i in {1..100}; do ./coef-inner-product number.txt 40961 4096 3.2 n4096-coef-inner-4096; done
-for i in {1..100}; do ./coef-inner-product number.txt 40961 2048 3.2 n4096-coef-inner-2048; done
-for i in {1..100}; do ./coef-inner-product number.txt 40961 1024 3.2 n4096-coef-inner-1024; done
-for i in {1..100}; do ./coef-inner-product number.txt 40961 512 3.2 n4096-coef-inner-512; done
-
+for i in {1..100}; do ./coef-inner-product number.txt 27328513 512 3.2 n1000x8192-coef-inner-512; done

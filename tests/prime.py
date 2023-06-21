@@ -1,6 +1,6 @@
 from sympy import *
 
-n = 512
+n = 256
 m = 97 * 2
 
 while(true):
