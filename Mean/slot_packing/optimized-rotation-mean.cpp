@@ -65,8 +65,16 @@ int main(int argc, char *argv[]) {
     int64_t ringDim = atoi(argv[3]);
     float standardDev = atof(argv[4]);
     
-    int64_t number_vectors = total_elements / ringDim;
+    int64_t number_vectors = 1;
 
+    if(ringDim < total_elements){
+	    number_vectors = total_elements / ringDim;
+    }
+
+    if((int)all_numbers.size() < (int)ringDim){
+	    std::vector<int64_t> zeros(ringDim - all_numbers.size(), 0);
+	    all_numbers.insert(all_numbers.end(), zeros.begin(), zeros.end());
+    }
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
     parameters.SetPlaintextModulus(plaintext_modulus);
@@ -169,7 +177,7 @@ int main(int argc, char *argv[]) {
 
     // Plaintext Operations
     double mean_sum = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[ringDim/2];
-    double mean = mean_sum / total_elements; 
+    //double mean = mean_sum / total_elements; 
    
     // Print time spent on plaintext operations
     TOC(t);
@@ -180,8 +188,8 @@ int main(int argc, char *argv[]) {
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
-    //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    //std::cout << "Mean: " << mean << std::endl;
+    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    std::cout << "Sum: " << mean_sum << std::endl;
     
-    printIntoCSV(processingTimes, total_time, mean, argv[5]);
+    //printIntoCSV(processingTimes, total_time, mean, argv[5]);
 }

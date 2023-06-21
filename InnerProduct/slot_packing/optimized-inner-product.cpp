@@ -66,7 +66,16 @@ int main(int argc, char *argv[]) {
     int64_t ringDim = atoi(argv[3]);
     float standardDev = atof(argv[4]);
     
-    int64_t number_vectors = total_elements / ringDim;
+    int64_t number_vectors = 1;
+
+    if(ringDim < total_elements){
+	    number_vectors = total_elements / ringDim;
+    }
+
+    if((int)all_numbers.size() < (int)ringDim){
+	    std::vector<int64_t> zeros(ringDim - all_numbers.size(), 0);
+	    all_numbers.insert(all_numbers.end(), zeros.begin(), zeros.end());
+    }
 
     // Set CryptoContext
     CCParams<CryptoContextBFVRNS> parameters;
@@ -178,10 +187,10 @@ int main(int argc, char *argv[]) {
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
-    //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
-    //std::cout << "Inner Product: " << inner_product << std::endl;
+    std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    std::cout << "Inner Product: " << inner_product << std::endl;
 
-    printIntoCSV(processingTimes, total_time, inner_product, argv[5]);
+    //printIntoCSV(processingTimes, total_time, inner_product, argv[5]);
 
     return 0;
 }

@@ -1,7 +1,7 @@
 from sympy import *
 
-n = 4096
-m = 4096 * 2
+n = 512
+m = 855 * 2
 
 while(true):
     m +=1
