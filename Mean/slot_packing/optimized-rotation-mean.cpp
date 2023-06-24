@@ -19,7 +19,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream meanCSV("timeCSVs/sumTimes.csv", std::ios_base::app);
+    std::ofstream meanCSV("timeCSVs/sumSlotTimes.csv", std::ios_base::app);
     
     meanCSV << name << ", ";
 
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     }
 
     TimeVar t;
-    std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0, 0.0};
+    std::vector<double> processingTimes = {0.0, 0.0, 0.0, 0.0};
 
     TIC(t);
     int64_t plaintext_modulus = atol(argv[2]);
