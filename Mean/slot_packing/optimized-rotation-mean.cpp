@@ -19,7 +19,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream meanCSV("timeCSVs/ringDimOptimization.csv", std::ios_base::app);
+    std::ofstream meanCSV("timeCSVs/sumTimes.csv", std::ios_base::app);
     
     meanCSV << name << ", ";
 
@@ -137,13 +137,15 @@ int main(int argc, char *argv[]) {
     // Print time spent on encryption
     TOC(t);
     processingTimes[1] = TOC(t);
- 
-    //std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
-    
     TIC(t);
 	    
     // Homomorphic Operations 
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
+
+    // Print time spent on Add many
+    TOC(t);
+    processingTimes[2] = TOC(t);
+    TIC(t);
 
     auto ciphertextRot = ciphertextAdd;
 
@@ -153,35 +155,18 @@ int main(int argc, char *argv[]) {
         ciphertextAdd = cryptoContext->EvalAdd(ciphertextAdd, ciphertextRot);
     }
 
-    // Print time spent on homomorphic operations
+    // Print time spent on Rot + Add
     TOC(t);
-    processingTimes[2] = TOC(t);
- 
-    //std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
-    
-    TIC(t);
+    processingTimes[3] = TOC(t);
 
     // Decryption
     Plaintext plaintextDecAdd;
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDecAdd);
-    plaintextDecAdd->SetLength(ringDim);
-
-    // Print time spent on decryption
-    TOC(t);
-    processingTimes[3] = TOC(t);
- 
-    //std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
-    
-    TIC(t);
 
     // Plaintext Operations
     double mean_sum = plaintextDecAdd->GetPackedValue()[0] + plaintextDecAdd->GetPackedValue()[ringDim/2];
-    //double mean = mean_sum / total_elements; 
-   
-    // Print time spent on plaintext operations
-    TOC(t);
-    processingTimes[4] = TOC(t);
+
  
     //std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
     

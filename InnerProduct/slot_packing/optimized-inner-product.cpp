@@ -20,7 +20,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream innerProductCSV("timeCSVs/ringDimOptimization.csv", std::ios_base::app);
+    std::ofstream innerProductCSV("timeCSVs/innerProdTimes.csv", std::ios_base::app);
     
     innerProductCSV<< name << ", ";
 
@@ -149,37 +149,39 @@ int main(int argc, char *argv[]) {
         ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], ciphertexts[i]);
     }
 
+    // Print time spent on Mult
+    TOC(t);
+    processingTimes[2] = TOC(t);
+    TIC(t);
+    
     Ciphertext<DCRTPoly> ciphertextResult = cryptoContext->EvalAddMany(ciphertexts);
+
+    // Print time spent on Add Many
+    TOC(t);
+    processingTimes[3] = TOC(t);
+    TIC(t);
+
     Plaintext plaintext;
   
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintext);
 
     // Rotate and sum until all values are summed together
     Ciphertext<DCRTPoly> ciphertextRot;
+
     for(int i = 0; i < number_rotations; i++){
         ciphertextRot = cryptoContext->EvalRotate(ciphertextResult, pow(2, i));
      
         ciphertextResult = cryptoContext->EvalAdd(ciphertextResult, ciphertextRot);
     }
 
-    // Print time spent on homomorphic operations
+    // Print time spent on Add Many
     TOC(t);
-    processingTimes[2] = TOC(t);
- 
-    ////std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
-    
+    processingTimes[4] = TOC(t);
     TIC(t);
 
     // Decryption
     Plaintext plaintextDecAdd;
   
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextResult, &plaintextDecAdd);
-    
-    // Print time spent on decryption
-    TOC(t);
-    processingTimes[3] = TOC(t);
- 
-    ////std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
 
     // Inner Product value will be in the first element of the plaintext
     int64_t inner_product = plaintextDecAdd->GetPackedValue()[0];

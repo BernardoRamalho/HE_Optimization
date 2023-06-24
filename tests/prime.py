@@ -1,7 +1,7 @@
 from sympy import *
 
-n = 256
-m = 97 * 2
+n = 8192
+m = 341375 * 2
 
 while(true):
     m +=1

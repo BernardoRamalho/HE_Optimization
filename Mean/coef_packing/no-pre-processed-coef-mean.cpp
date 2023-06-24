@@ -19,7 +19,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream meanCSV("timeCSVs/ringDimOptimization.csv", std::ios_base::app);
+    std::ofstream meanCSV("timeCSVs/sumTimes.csv", std::ios_base::app);
     
     meanCSV << name << ", ";
 
@@ -131,53 +131,41 @@ int main(int argc, char *argv[]) {
 
     // Print time spent on encryption
     TOC(t);
-    processingTimes[1] = TOC(t);
- 
-    //std::cout << "Duration of encryption: " << processingTimes[1] << "ms" << std::endl;
-    
+    processingTimes[1] = TOC(t);    
     TIC(t);
+
     // Homomorphic Operations 
     auto ciphertextAdd = cryptoContext->EvalAddMany(ciphertexts);
 
-    ciphertextAdd = cryptoContext->EvalMult(ciphertextAdd, all_ones_plaintext); 
-
-    // Print time spent on homomorphic operations
+    // Print time spent on Add Many
     TOC(t);
     processingTimes[2] = TOC(t);
- 
-    //std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
-    
     TIC(t);
+
+    ciphertextAdd = cryptoContext->EvalMult(ciphertextAdd, all_ones_plaintext); 
+
+    // Print time spent on Mult
+    TOC(t);
+    processingTimes[3] = TOC(t);
+    TIC(t);
+ 
 
     // Decryption
     Plaintext plaintextDec;
  
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDec);
 
-    // Print time spent on decryption
-    TOC(t);
-    processingTimes[3] = TOC(t);
- 
-    //std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
-    TIC(t);
-
     // Plaintext Operations
     int numberValues = plaintextDec->GetCoefPackedValue().size();
     double mean_sum = plaintextDec->GetCoefPackedValue()[numberValues - 1];
-   
-    //double mean = mean_sum / total_elements; 
-
-    // Print time spent on plaintext operations
-    TOC(t);
-    processingTimes[4] = TOC(t);
  
     //std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
     
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
 
-   // std::cout << "Total runtime: " << total_time << "ms" << std::endl;
+    //std::cout << "Total runtime: " << total_time << "ms" << std::endl;
     //std::cout << "Sum: " << mean_sum << std::endl;
 
-   printIntoCSV(processingTimes, total_time, mean_sum, argv[5]);
+    printIntoCSV(processingTimes, total_time, mean_sum, argv[5]);
 }

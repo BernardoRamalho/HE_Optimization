@@ -20,7 +20,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream innerProductCSV("timeCSVs/ringDimOptimization.csv", std::ios_base::app);
+    std::ofstream innerProductCSV("timeCSVs/innerProdTimes.csv", std::ios_base::app);
     
     innerProductCSV<< name << ", ";
 
@@ -151,14 +151,16 @@ int main(int argc, char *argv[]) {
         ciphertexts[i] = cryptoContext->EvalMult(ciphertexts[i], inverted_ciphertexts[i]);
     }
 
-    Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalAddMany(ciphertexts);
-
-    // Print time spent on homomorphic operations
+    // Print time spent on Mult
     TOC(t);
     processingTimes[2] = TOC(t);
- 
-    ////std::cout << "Duration of homomorphic operations: " << processingTimes[2] << "ms" << std::endl;
-    
+    TIC(t);
+
+    Ciphertext<DCRTPoly> ciphertextInnerProduct = cryptoContext->EvalAddMany(ciphertexts);
+
+    // Print time spent on Mult
+    TOC(t);
+    processingTimes[2] = TOC(t);
     TIC(t);
 
     // Decryption
