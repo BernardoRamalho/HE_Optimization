@@ -20,7 +20,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream innerProductCSV("timeCSVs/innerProdCoefTimes.csv", std::ios_base::app);
+    std::ofstream innerProductCSV("timeCSVs/innerProdCoefToSlotTimes.csv", std::ios_base::app);
     
     innerProductCSV<< name << ", ";
 
@@ -129,10 +129,10 @@ int main(int argc, char *argv[]) {
         reverse(inverted_numbers.begin(), inverted_numbers.end()); 
 
         // Encode Plaintext with coef packing and encrypt it into a ciphertext vector
-        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(numbers);
+        Plaintext plaintext = cryptoContext->MakePackedPlaintext(numbers);
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
        
-       	Plaintext inverted_plaintext = cryptoContext->MakeCoefPackedPlaintext(inverted_numbers);
+       	Plaintext inverted_plaintext = cryptoContext->MakePackedPlaintext(inverted_numbers);
         inverted_ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, inverted_plaintext));
 
     }
@@ -175,7 +175,7 @@ int main(int argc, char *argv[]) {
     ////std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
 
     // Inner Product value will be in the last element of the plaintext
-    int64_t inner_product = plaintextDecAdd->GetCoefPackedValue()[ringDim - 1];
+    int64_t inner_product = plaintextDecAdd->GetPackedValue()[ringDim - 1];
 
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
