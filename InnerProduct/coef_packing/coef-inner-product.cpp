@@ -129,10 +129,10 @@ int main(int argc, char *argv[]) {
         reverse(inverted_numbers.begin(), inverted_numbers.end()); 
 
         // Encode Plaintext with coef packing and encrypt it into a ciphertext vector
-        Plaintext plaintext = cryptoContext->MakePackedPlaintext(numbers);
+        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(numbers);
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
        
-       	Plaintext inverted_plaintext = cryptoContext->MakePackedPlaintext(inverted_numbers);
+       	Plaintext inverted_plaintext = cryptoContext->MakeCoefPackedPlaintext(inverted_numbers);
         inverted_ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, inverted_plaintext));
 
     }
@@ -160,22 +160,15 @@ int main(int argc, char *argv[]) {
 
     // Print time spent on Mult
     TOC(t);
-    processingTimes[2] = TOC(t);
-    TIC(t);
+    processingTimes[3] = TOC(t);
 
     // Decryption
     Plaintext plaintextDecAdd;
   
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextInnerProduct, &plaintextDecAdd);
 
-    // Print time spent on decryption
-    TOC(t);
-    processingTimes[3] = TOC(t);
- 
-    ////std::cout << "Duration of decryption: " << processingTimes[3] << "ms" << std::endl;
-
-    // Inner Product value will be in the last element of the plaintext
-    int64_t inner_product = plaintextDecAdd->GetPackedValue()[ringDim - 1];
+   // Inner Product value will be in the last element of the plaintext
+    int64_t inner_product = plaintextDecAdd->GetCoefPackedValue()[ringDim - 1];
 
     // Calculate and print final time and value
     double total_time = std::reduce(processingTimes.begin(), processingTimes.end());
