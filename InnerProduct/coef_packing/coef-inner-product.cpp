@@ -20,7 +20,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream innerProductCSV("timeCSVs/innerProdCoefToSlotTimes.csv", std::ios_base::app);
+    std::ofstream innerProductCSV("timeCSVs/innerProdCoefTimes.csv", std::ios_base::app);
     
     innerProductCSV<< name << ", ";
 
