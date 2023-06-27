@@ -19,7 +19,7 @@ void printIntoCSV(std::vector<double> processingTimes, double total_time, double
     // Open the file
     std::string filePath;
 
-    std::ofstream meanCSV("timeCSVs/sumCoefToSlotTimes.csv", std::ios_base::app);
+    std::ofstream meanCSV("timeCSVs/sumCoefTimes.csv", std::ios_base::app);
     
     meanCSV << name << ", ";
 
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
     
     std::vector<int64_t> all_ones(ringDim, 1);
 
-    Plaintext all_ones_plaintext = cryptoContext->MakePackedPlaintext(all_ones);
+    Plaintext all_ones_plaintext = cryptoContext->MakeCoefPackedPlaintext(all_ones);
 
     // Print time spent on setup
     TOC(t);
@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
         end = ringDim * (i + 1);
 
         // Encode Plaintext  with coefficient packing and encrypt it into a ciphertext vector
-        Plaintext plaintext = cryptoContext->MakePackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
+        Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(std::vector<int64_t>(all_numbers.begin() + begin, all_numbers.begin() + end));
         ciphertexts.push_back(cryptoContext->Encrypt(keyPair.publicKey, plaintext));
     }
 
@@ -156,8 +156,8 @@ int main(int argc, char *argv[]) {
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAdd, &plaintextDec);
 
     // Plaintext Operations
-    int numberValues = plaintextDec->GetPackedValue().size();
-    double mean_sum = plaintextDec->GetPackedValue()[numberValues - 1];
+    int numberValues = plaintextDec->GetCoefPackedValue().size();
+    double mean_sum = plaintextDec->GetCoefPackedValue()[numberValues - 1];
  
     //std::cout << "Duration of plaintext operations: " << processingTimes[4] << "ms" << std::endl;
     

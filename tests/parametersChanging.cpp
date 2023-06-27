@@ -46,7 +46,7 @@ parameters.SetRingDim( atoi(argv[3]) );
 
     // Generate rotation vectors
     Plaintext plaintextRot;
-
+    std::cout << "Multiplication type: " << parameters.GetMultiplicationTechnique() << std::endl;
         // Create vector of size 8192 filled with 0
     std::vector<int64_t> rotationVector(atoi(argv[3]), 0);
 
